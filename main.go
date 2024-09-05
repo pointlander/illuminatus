@@ -240,7 +240,7 @@ func PageRank(Q, K Matrix) []float64 {
 		}
 	}
 	ranks := make([]float64, K.Rows)
-	graph.Rank(0.85, 1e-6, func(node uint32, rank float64) {
+	graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
 		ranks[node] = rank
 	})
 	return ranks
@@ -248,8 +248,8 @@ func PageRank(Q, K Matrix) []float64 {
 
 // Sample is a sample
 type Sample struct {
-	A      SparseRandomMatrix
-	B      SparseRandomMatrix
+	A      GaussianRandomMatrix
+	B      GaussianRandomMatrix
 	Order  GaussianRandomMatrix
 	Symbol GaussianRandomMatrix
 	S      int
@@ -260,13 +260,13 @@ type Sample struct {
 func Search(s int, seed int64) []Sample {
 	length := len(Puzzles[s].Q()) + 1
 	rng := rand.New(rand.NewSource(seed))
-	projections := make([]SparseRandomMatrix, Scale)
+	projections := make([]GaussianRandomMatrix, Scale)
 	for i := range projections {
 		seed := rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
-		projections[i] = NewSparseRandomMatrix(Input, Input, seed)
+		projections[i] = NewGaussianRandomMatrix(Input, Input, seed)
 	}
 	index := 0
 	samples := make([]Sample, Samples)
@@ -476,7 +476,7 @@ func Model(full bool, s int, seed int64) int {
 	var account [SymbolsCount][4]float64
 	for h := 0; h < 4; h++ {
 		for i, v := range input {
-			account[h][v] += y[h].At(i, i) / avg[h][i]
+			account[h][v] += y[h].At(i, i) /// avg[h][i]
 		}
 		//account[h][h] += y[h].At(len(input), len(input)) / avg[h][h]
 	}
@@ -501,7 +501,7 @@ func Model(full bool, s int, seed int64) int {
 func main() {
 	seed := int64(2)
 	histogram := [5][4]int{}
-	for e := 0; e < 16; e++ {
+	for e := 0; e < 32; e++ {
 		correct := 0
 		for i := 0; i < 4; i++ {
 			result := Model(false, i, seed)
