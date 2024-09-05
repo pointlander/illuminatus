@@ -478,7 +478,7 @@ func Model(full bool, s int, seed int64) int {
 		for i, v := range input {
 			account[h][v] += y[h].At(i, i) / avg[h][i]
 		}
-		account[h][h] += y[h].At(len(input), len(input)) / avg[h][h]
+		//account[h][h] += y[h].At(len(input), len(input)) / avg[h][h]
 	}
 	for i := range account {
 		fmt.Println(account[i])
