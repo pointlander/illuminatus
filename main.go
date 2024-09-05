@@ -512,7 +512,7 @@ func main() {
 		}
 		result := Model(false, 4, seed)
 		histogram[4][result]++
-		if result == 4 {
+		if result == 3 {
 			correct++
 		}
 		fmt.Println("correct", correct)
