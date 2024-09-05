@@ -418,7 +418,7 @@ func Model(full bool, s int, seed int64) int {
 			avg[h][j] /= c[h]
 		}
 	}
-	max, symbol := 0.0, 0
+	/*max, symbol := 0.0, 0
 	sum := [SymbolsCount]float64{}
 	for h := range y {
 		fa := mat.Formatted(y[h], mat.Squeeze())
@@ -432,7 +432,6 @@ func Model(full bool, s int, seed int64) int {
 					d := (y[h].At(i, j)*rng.NormFloat64() + avg[h][j])
 					if d > 0 {
 						graph.Link(uint32(i), uint32(j), d)
-						//graph.Link(uint32(j), uint32(i), d)
 					} else {
 						graph.Link(uint32(j), uint32(i), -d)
 					}
@@ -471,7 +470,7 @@ func Model(full bool, s int, seed int64) int {
 		fmt.Println(max, symbol+1)
 	}
 	fmt.Println(avg)
-	fmt.Println(max, symbol+1)
+	fmt.Println(max, symbol+1)*/
 
 	var account [SymbolsCount][4]float64
 	for h := 0; h < 4; h++ {
