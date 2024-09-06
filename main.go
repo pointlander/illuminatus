@@ -51,11 +51,11 @@ func init() {
 		From[index] = i
 		index++
 	}
-	i := '.'
+	i := '^'
 	To[i] = index
 	From[index] = i
 	index++
-	i = ','
+	i = '$'
 	To[i] = index
 	From[index] = i
 	index++
@@ -86,12 +86,12 @@ func (p Puzzle) A() int {
 }
 
 var Puzzles = []Puzzle{
-	"abcdabcdabcda",
-	"abcdabcdabcdab",
-	"abcdabcdabcdabc",
-	"abcdabcdabcdabcd",
-	"abcddcbaabcddcbaabcddcbaabcd",
-	"aabbccddaabbccddaabbccd",
+	"^abcdabcdabcda",
+	"^abcdabcdabcdab",
+	"^abcdabcdabcdabc",
+	"^abcdabcdabcdabcd",
+	"^abcddcbaabcddcbaabcddcbaabcd",
+	"^aabbccddaabbccddaabbccd",
 }
 
 // Matrix is a float64 matrix
@@ -259,7 +259,7 @@ type Sample struct {
 
 // Search searches for a symbol
 func Search(s int, seed int64) []Sample {
-	length := len(Puzzles[s].Q()) + 1
+	length := len(Puzzles[s].Q()) + 2
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]GaussianRandomMatrix, Scale)
 	for i := range projections {
@@ -331,9 +331,14 @@ func Search(s int, seed int64) []Sample {
 			copy(phi.Data[index:index+Input], symbol)
 			index += Input
 		}
-		params := phi.Data[Input*(length-1) : Input*length]
+		params := phi.Data[Input*(length-2) : Input*length-1]
 		symbol := syms.Data[Size*To[rune(sample.S)] : Size*(To[rune(sample.S)]+1)]
 		copy(params, symbol)
+		{
+			params := phi.Data[Input*(length-1) : Input*length]
+			symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
+			copy(params, symbol)
+		}
 		/*factor := 1.0 / float64(Input)
 		for i := range phi.Data {
 			phi.Data[i] += float32(factor * sample.Rng.Float64())
@@ -370,7 +375,7 @@ func Search(s int, seed int64) []Sample {
 
 // Model
 func Model(full bool, s int, seed int64) int {
-	input := Puzzles[s].Q()
+	input := Puzzles[s].Q()[1:]
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(Puzzles[s]))
 	var y [SymbolsCount]*mat.Dense
