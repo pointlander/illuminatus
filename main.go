@@ -306,7 +306,7 @@ func Search(s int, seed int64) []Sample {
 		}*/
 		order := sample.Order.Sample()
 		a, b := 0, 1
-		jj := phi.Rows
+		jj := phi.Rows - 1
 		for j := 0; j < jj; j++ {
 			x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
 			copy(phi.Data[j*Input+Size:j*Input+Size+Size],
@@ -315,14 +315,14 @@ func Search(s int, seed int64) []Sample {
 				order.Data[(y)*Size:(y+1)*Size])
 			a, b = b, a
 		}
-		/*if x := jj + a; x < opt.Opt.Rows {
+		if x := jj + a; x < phi.Rows {
 			copy(phi.Data[jj*Input+Size:jj*Input+Size+Size],
 				order.Data[x*Size:(x+1)*Size])
 		}
-		if y := jj + b; y < opt.Opt.Rows {
+		if y := jj + b; y < phi.Rows {
 			copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
 				order.Data[(y)*Size:(y+1)*Size])
-		}*/
+		}
 		syms := sample.Symbol.Sample()
 		index := 0
 		input := Puzzles[s].Q()
