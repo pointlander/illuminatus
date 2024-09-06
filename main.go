@@ -7,10 +7,12 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/cmplx"
 	"math/rand"
 	"runtime"
 
 	"github.com/alixaxel/pagerank"
+	"github.com/mjibson/go-dsp/fft"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat"
 )
@@ -504,6 +506,25 @@ func Model(full bool, s int, seed int64) int {
 }
 
 func main() {
+	r := NewGaussianRandomMatrix(8, 8, 1)
+	s := r.Sample()
+	input := make([]complex128, 8)
+	for i := range input {
+		input[i] = complex(s.Data[i*s.Cols], 0)
+	}
+	fmt.Println(input)
+	output := fft.FFT(input)
+	fmt.Println(output)
+	value := output[len(output)-1]
+	value = complex(cmplx.Abs(value), 0)
+	output[len(output)-1] = value
+	fmt.Println(value)
+	input = fft.IFFT(output)
+	fmt.Println(input)
+	input = make([]complex128, 8)
+	input[7] = 1
+	input = fft.IFFT(input)
+	fmt.Println(input)
 	seed := int64(2)
 	histogram := [6][4]int{}
 	for e := 0; e < 32; e++ {

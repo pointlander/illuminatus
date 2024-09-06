@@ -1,4 +1,6 @@
 github.com/alixaxel/pagerank v0.0.0-20200105181019-900657b89dcb h1:q45Ipu3ciM9kIe9XjdmHChrefQc3DBVgljoR7Ta0cYQ=
 github.com/alixaxel/pagerank v0.0.0-20200105181019-900657b89dcb/go.mod h1:e7Vic/xXDZAQ8ftWoLnVrXseAAvt54SVYrcirjCKcX0=
+github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12 h1:dd7vnTDfjtwCETZDrRe+GPYNLA1jBtbZeyfyE8eZCyk=
+github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12/go.mod h1:i/KKcxEWEO8Yyl11DYafRPKOPVYTrhxiTRigjtEEXZU=
 gonum.org/v1/gonum v0.15.1 h1:FNy7N6OUZVUaWG9pTiD+jlhdQ3lMP+/LcTpJ6+a8sQ0=
 gonum.org/v1/gonum v0.15.1/go.mod h1:eZTZuRFrzu5pcyjN5wJhcIhnUdNijYxX1T2IcrOGY0o=
