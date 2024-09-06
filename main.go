@@ -91,6 +91,7 @@ var Puzzles = []Puzzle{
 	"abcdabcdabcdabc",
 	"abcdabcdabcdabcd",
 	"abcddcbaabcddcbaabcddcbaabcd",
+	"aabbccddaabbccddaabbccd",
 }
 
 // Matrix is a float64 matrix
@@ -499,7 +500,7 @@ func Model(full bool, s int, seed int64) int {
 
 func main() {
 	seed := int64(2)
-	histogram := [5][4]int{}
+	histogram := [6][4]int{}
 	for e := 0; e < 32; e++ {
 		correct := 0
 		for i := 0; i < 4; i++ {
@@ -511,6 +512,11 @@ func main() {
 		}
 		result := Model(false, 4, seed)
 		histogram[4][result]++
+		if result == 3 {
+			correct++
+		}
+		result = Model(false, 5, seed)
+		histogram[5][result]++
 		if result == 3 {
 			correct++
 		}
