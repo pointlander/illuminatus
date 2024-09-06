@@ -87,7 +87,7 @@ func (p Puzzle) A() int {
 
 var Puzzles = []Puzzle{
 	"^abcdabcdabcda",
-	"^abcdabcdabcdab",
+	"^abcdabcdabcdabcdab",
 	"^abcdabcdabcdabc",
 	"^abcdabcdabcdabcd",
 	"^abcddcbaabcddcbaabcddcbaabcd",
@@ -403,13 +403,13 @@ func Model(full bool, s int, seed int64) int {
 				avg[h] = make([]float64, len(ranks))
 			}
 			c[h]++
+			input[h] = append(input[h], ranks[1:]...)
 			for j, rank := range ranks {
-				input[h] = append(input[h], float64(rank))
-				avg[h][j] += float64(rank)
+				avg[h][j] += rank
 			}
 		}
 		for j := range counts {
-			x := mat.NewDense(counts[j], len(samples[0].Ranks), input[j])
+			x := mat.NewDense(counts[j], len(samples[0].Ranks[1:]), input[j])
 			dst := mat.SymDense{}
 			stat.CovarianceMatrix(&dst, x, nil)
 			if y[j] == nil {
