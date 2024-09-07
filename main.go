@@ -235,11 +235,9 @@ func PageRank(Q, K Matrix) []float64 {
 			bb = math.Sqrt(bb)
 			d := Dot(K, Q) / (aa * bb)
 			if d < 0 {
-				graph.Link(uint32(i), uint32(j), -d)
-			} else {
-				graph.Link(uint32(j), uint32(i), d)
+				d = -d
 			}
-
+			graph.Link(uint32(i), uint32(j), d)
 		}
 	}
 	ranks := make([]float64, K.Rows)
