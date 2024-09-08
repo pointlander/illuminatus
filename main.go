@@ -100,13 +100,13 @@ var Puzzles = []Puzzle{
 type Matrix struct {
 	Cols int
 	Rows int
-	Data []float64
+	Data []complex128
 }
 
 // NewMatrix creates a new float64 matrix
-func NewMatrix(cols, rows int, data ...float64) Matrix {
+func NewMatrix(cols, rows int, data ...complex128) Matrix {
 	if data == nil {
-		data = make([]float64, 0, cols*rows)
+		data = make([]complex128, 0, cols*rows)
 	}
 	return Matrix{
 		Cols: cols,
@@ -120,7 +120,7 @@ func NewZeroMatrix(cols, rows int) Matrix {
 	return Matrix{
 		Cols: cols,
 		Rows: rows,
-		Data: make([]float64, cols*rows),
+		Data: make([]complex128, cols*rows),
 	}
 }
 
@@ -147,47 +147,13 @@ func (g GaussianRandomMatrix) Sample() Matrix {
 	sample := NewMatrix(g.Cols, g.Rows)
 	for i := 0; i < g.Cols*g.Rows; i++ {
 		value := rng.NormFloat64() * factor
-		sample.Data = append(sample.Data, value)
-	}
-	return sample
-}
-
-// SparseRandomMatrix is a sparse random matrix
-type SparseRandomMatrix struct {
-	Cols int
-	Rows int
-	Seed int64
-}
-
-// NewSparseRandomMatrix creates a new sparse random matrix
-func NewSparseRandomMatrix(cols, rows int, seed int64) SparseRandomMatrix {
-	return SparseRandomMatrix{
-		Cols: cols,
-		Rows: rows,
-		Seed: seed,
-	}
-}
-
-// Sample generates a matrix from a sparse distribution
-func (d SparseRandomMatrix) Sample() Matrix {
-	rng := rand.New(rand.NewSource(d.Seed))
-	factor := math.Sqrt(2.0 / float64(d.Cols))
-	sample := NewMatrix(d.Cols, d.Rows)
-	for i := 0; i < d.Cols*d.Rows; i++ {
-		value := rng.Intn(6)
-		if value < 1 {
-			sample.Data = append(sample.Data, factor)
-		} else if value < 5 {
-			sample.Data = append(sample.Data, 0)
-		} else {
-			sample.Data = append(sample.Data, -factor)
-		}
+		sample.Data = append(sample.Data, complex(value, 0))
 	}
 	return sample
 }
 
 // Dot computes the dot product
-func Dot(x, y []float64) (z float64) {
+func Dot(x, y []complex128) (z complex128) {
 	for i := range x {
 		z += x[i] * y[i]
 	}
@@ -203,7 +169,7 @@ func (m Matrix) MulT(n Matrix) Matrix {
 	o := Matrix{
 		Cols: m.Rows,
 		Rows: n.Rows,
-		Data: make([]float64, 0, m.Rows*n.Rows),
+		Data: make([]complex128, 0, m.Rows*n.Rows),
 	}
 	lenn, lenm := len(n.Data), len(m.Data)
 	for i := 0; i < lenn; i += columns {
@@ -221,22 +187,19 @@ func PageRank(Q, K Matrix) []float64 {
 	graph := pagerank.NewGraph()
 	for i := 0; i < K.Rows; i++ {
 		K := K.Data[i*K.Cols : (i+1)*K.Cols]
-		aa := 0.0
+		aa := complex(0.0, 0.0)
 		for _, v := range K {
 			aa += v * v
 		}
-		aa = math.Sqrt(aa)
+		aa = cmplx.Sqrt(aa)
 		for j := 0; j < Q.Rows; j++ {
 			Q := Q.Data[j*Q.Cols : (j+1)*Q.Cols]
-			bb := 0.0
+			bb := complex(0.0, 0.0)
 			for _, v := range Q {
-				bb += float64(v * v)
+				bb += v * v
 			}
-			bb = math.Sqrt(bb)
-			d := Dot(K, Q) / (aa * bb)
-			if d < 0 {
-				d = -d
-			}
+			bb = cmplx.Sqrt(bb)
+			d := cmplx.Abs(Dot(K, Q) / (aa * bb))
 			graph.Link(uint32(i), uint32(j), d)
 		}
 	}
@@ -508,7 +471,7 @@ func main() {
 	s := r.Sample()
 	input := make([]complex128, 8)
 	for i := range input {
-		input[i] = complex(s.Data[i*s.Cols], 0)
+		input[i] = s.Data[i*s.Cols]
 	}
 	fmt.Println(input)
 	output := fft.FFT(input)
