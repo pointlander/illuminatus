@@ -146,8 +146,9 @@ func (g GaussianRandomMatrix) Sample() Matrix {
 	factor := math.Sqrt(2.0 / float64(g.Cols))
 	sample := NewMatrix(g.Cols, g.Rows)
 	for i := 0; i < g.Cols*g.Rows; i++ {
-		value := rng.NormFloat64() * factor
-		sample.Data = append(sample.Data, complex(value, 0))
+		a := rng.NormFloat64() * factor
+		//b := rng.NormFloat64() * factor
+		sample.Data = append(sample.Data, complex(a, a))
 	}
 	return sample
 }
