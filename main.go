@@ -23,7 +23,7 @@ const (
 	// Size is the link size
 	Size = 32
 	// Input is the network input size
-	Input = Size //+ 2*Size
+	Input = Size + 2*Size
 	// S is the scaling factor for the softmax
 	S = 1.0 - 1e-300
 	// Scale is the scale of the search
@@ -148,7 +148,7 @@ func (g GaussianRandomMatrix) Sample() Matrix {
 	for i := 0; i < g.Cols*g.Rows; i++ {
 		a := rng.NormFloat64() * factor
 		//b := rng.NormFloat64() * factor
-		sample.Data = append(sample.Data, complex(a, 0))
+		sample.Data = append(sample.Data, complex(a, a))
 	}
 	return sample
 }
@@ -269,7 +269,7 @@ func Search(s int, seed int64) []Sample {
 			}
 		}*/
 		order := sample.Order.Sample()
-		/*a, b := 0, 1
+		a, b := 0, 1
 		jj := phi.Rows - 1
 		for j := 0; j < jj; j++ {
 			x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
@@ -286,8 +286,7 @@ func Search(s int, seed int64) []Sample {
 		if y := jj + b; y < phi.Rows {
 			copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
 				order.Data[(y)*Size:(y+1)*Size])
-		}*/
-		_ = order
+		}
 		syms := sample.Symbol.Sample()
 		index := 0
 		input := Puzzles[s].Q()
@@ -304,12 +303,12 @@ func Search(s int, seed int64) []Sample {
 			symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
 			copy(params, symbol)
 		}
-		for j := 0; j < phi.Rows; j++ {
+		/*for j := 0; j < phi.Rows; j++ {
 			for i := 0; i < phi.Cols; i += 2 {
 				phi.Data[j*phi.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
 				phi.Data[j*phi.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
 			}
-		}
+		}*/
 		/*factor := 1.0 / float64(Input)
 		for i := range phi.Data {
 			phi.Data[i] += float32(factor * sample.Rng.Float64())
