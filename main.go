@@ -343,6 +343,8 @@ func Search(s int, seed int64) []Sample {
 	return samples
 }
 
+var difference = 0
+
 // Model
 func Model(full bool, s int, seed int64) int {
 	input := Puzzles[s].Q()[1:]
@@ -351,12 +353,14 @@ func Model(full bool, s int, seed int64) int {
 	var y [SymbolsCount]*mat.Dense
 	var avg [SymbolsCount][]float64
 	var c [SymbolsCount]float64
+	var samps [8][]Sample
 	for i := 0; i < 8; i++ {
 		seed := rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
 		samples := Search(s, seed)
+		samps[i] = samples
 		input := make([][]float64, SymbolsCount)
 		var counts [SymbolsCount]int
 		for sample := range samples {
@@ -392,6 +396,21 @@ func Model(full bool, s int, seed int64) int {
 	for h := range avg {
 		for j := range avg[h] {
 			avg[h][j] /= c[h]
+		}
+	}
+	var stddev [SymbolsCount][]float64
+	for i := range samps {
+		samples := samps[i]
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			h := samples[sample].S
+			if stddev[h] == nil {
+				stddev[h] = make([]float64, len(ranks))
+			}
+			for j, rank := range ranks {
+				diff := avg[h][j] - rank
+				stddev[h][j] += diff * diff
+			}
 		}
 	}
 	/*max, symbol := 0.0, 0
@@ -470,6 +489,32 @@ func Model(full bool, s int, seed int64) int {
 		fmt.Println(min, symbol+1)
 		result = symbol
 	}
+	{
+		input := Puzzles[s].Q()
+		min, index := math.MaxFloat64, 0
+		for s := range stddev {
+			value := stddev[s]
+			sum := 0.0
+			for k, v := range value {
+				if k >= len(input) {
+					break
+				}
+				if input[k] != s {
+					continue
+				}
+				sum += v
+			}
+			if sum < min {
+				min, index = sum, s
+			}
+		}
+		if index < len(input) {
+			fmt.Println(index + 1)
+		}
+		if index != result {
+			difference++
+		}
+	}
 	return result
 }
 
@@ -491,4 +536,5 @@ func main() {
 	for i := range histogram {
 		fmt.Println(histogram[i])
 	}
+	fmt.Println("difference", difference)
 }
