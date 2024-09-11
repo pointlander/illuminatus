@@ -327,8 +327,6 @@ func Search(s int, seed int64) []Sample {
 	return samples
 }
 
-var difference = 0
-
 // Illuminatus
 func Illuminatus(s int, seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
