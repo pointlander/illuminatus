@@ -122,16 +122,16 @@ func NewZeroMatrix(cols, rows int) Matrix {
 	}
 }
 
-// GaussianRandomMatrix is a random matrix
-type GaussianRandomMatrix struct {
+// RandomMatrix is a random matrix
+type RandomMatrix struct {
 	Cols int
 	Rows int
 	Seed int64
 }
 
-// NewGaussianRandomMatrix creates a new gaussian random matrix
-func NewGaussianRandomMatrix(cols, rows int, seed int64) GaussianRandomMatrix {
-	return GaussianRandomMatrix{
+// NewRandomMatrix creates a new gaussian random matrix
+func NewRandomMatrix(cols, rows int, seed int64) RandomMatrix {
+	return RandomMatrix{
 		Cols: cols,
 		Rows: rows,
 		Seed: seed,
@@ -139,7 +139,7 @@ func NewGaussianRandomMatrix(cols, rows int, seed int64) GaussianRandomMatrix {
 }
 
 // Sample generates a matrix from a gaussian distribution
-func (g GaussianRandomMatrix) Sample() Matrix {
+func (g RandomMatrix) Sample() Matrix {
 	rng := rand.New(rand.NewSource(g.Seed))
 	factor := math.Sqrt(2.0 / float64(g.Cols))
 	sample := NewMatrix(g.Cols, g.Rows)
@@ -211,10 +211,10 @@ func PageRank(Q, K Matrix) []float64 {
 
 // Sample is a sample
 type Sample struct {
-	A      GaussianRandomMatrix
-	B      GaussianRandomMatrix
-	Order  GaussianRandomMatrix
-	Symbol GaussianRandomMatrix
+	A      RandomMatrix
+	B      RandomMatrix
+	Order  RandomMatrix
+	Symbol RandomMatrix
 	S      int
 	Ranks  []float64
 }
@@ -223,13 +223,13 @@ type Sample struct {
 func Search(s int, seed int64) []Sample {
 	length := len(Puzzles[s].Q()) + 2
 	rng := rand.New(rand.NewSource(seed))
-	projections := make([]GaussianRandomMatrix, Scale)
+	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
 		seed := rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
-		projections[i] = NewGaussianRandomMatrix(Input, Input, seed)
+		projections[i] = NewRandomMatrix(Input, Input, seed)
 	}
 	index := 0
 	samples := make([]Sample, Samples)
@@ -239,12 +239,12 @@ func Search(s int, seed int64) []Sample {
 			if seed == 0 {
 				seed = 1
 			}
-			order := NewGaussianRandomMatrix(Size, length, seed)
+			order := NewRandomMatrix(Size, length, seed)
 			seed = rng.Int63()
 			if seed == 0 {
 				seed = 1
 			}
-			symbol := NewGaussianRandomMatrix(Size, Symbols, seed)
+			symbol := NewRandomMatrix(Size, Symbols, seed)
 			samples[index].A = projections[i]
 			samples[index].B = projections[j]
 			samples[index].Order = order
@@ -256,16 +256,6 @@ func Search(s int, seed int64) []Sample {
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
 		phi := NewZeroMatrix(Input, length)
-		/*order := make([]float32, Size)
-		for i := range order {
-			order[i] = float32(rng.NormFloat64())
-		}
-		for i := 0; i < opt.Opt.Rows; i++ {
-			copy(phi.Data[i*Input+Size:i*Input+Size+Size], order)
-			for j, value := range order {
-				order[j] = (value + float32(rng.NormFloat64())) / 2
-			}
-		}*/
 		order := sample.Order.Sample()
 		a, b := 0, 1
 		jj := phi.Rows - 1
@@ -307,10 +297,6 @@ func Search(s int, seed int64) []Sample {
 				phi.Data[j*phi.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
 			}
 		}*/
-		/*factor := 1.0 / float64(Input)
-		for i := range phi.Data {
-			phi.Data[i] += float32(factor * sample.Rng.Float64())
-		}*/
 		query := sample.A.Sample()
 		key := sample.B.Sample()
 		q := query.MulT(phi)
@@ -343,76 +329,66 @@ func Search(s int, seed int64) []Sample {
 
 var difference = 0
 
-// Model
-func Model(full bool, s int, seed int64) int {
+// Illuminatus
+func Illuminatus(s int, seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(Puzzles[s]))
 	var avg [SymbolsCount][]float64
-	var c [SymbolsCount]float64
-	var samps [8][]Sample
-	for i := 0; i < 8; i++ {
-		seed := rng.Int63()
-		if seed == 0 {
-			seed = 1
+	var count [SymbolsCount]float64
+	seed = rng.Int63()
+	if seed == 0 {
+		seed = 1
+	}
+	samples := Search(s, seed)
+	for sample := range samples {
+		ranks := samples[sample].Ranks
+		symbol := samples[sample].S
+		if avg[symbol] == nil {
+			avg[symbol] = make([]float64, len(ranks))
 		}
-		samples := Search(s, seed)
-		samps[i] = samples
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			h := samples[sample].S
-			if avg[h] == nil {
-				avg[h] = make([]float64, len(ranks))
-			}
-			c[h]++
-			for j, rank := range ranks {
-				avg[h][j] += rank
-			}
+		count[symbol]++
+		for j, rank := range ranks {
+			avg[symbol][j] += rank
 		}
 	}
-	for h := range avg {
-		for j := range avg[h] {
-			avg[h][j] /= c[h]
-		}
-	}
-	var stddev [SymbolsCount][]float64
-	for i := range samps {
-		samples := samps[i]
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			h := samples[sample].S
-			if stddev[h] == nil {
-				stddev[h] = make([]float64, len(ranks))
-			}
-			for j, rank := range ranks {
-				diff := avg[h][j] - rank
-				stddev[h][j] += diff * diff
-			}
+	for symbol := range avg {
+		for j := range avg[symbol] {
+			avg[symbol][j] /= count[symbol]
 		}
 	}
 
-	result := 0
-	{
-		input := Puzzles[s].Q()
-		min, index := math.MaxFloat64, 0
-		for s := range stddev {
-			value := stddev[s]
-			sum := 0.0
-			for k, v := range value {
-				if k >= len(input) {
-					break
-				}
-				if input[k] != s {
-					continue
-				}
-				sum += v
-			}
-			if sum < min {
-				min, index = sum, s
-			}
+	var variance [SymbolsCount][]float64
+	for sample := range samples {
+		ranks := samples[sample].Ranks
+		symbol := samples[sample].S
+		if variance[symbol] == nil {
+			variance[symbol] = make([]float64, len(ranks))
 		}
-		result = index
-		fmt.Println(index + 1)
+		for j, rank := range ranks {
+			diff := avg[symbol][j] - rank
+			variance[symbol][j] += diff * diff
+		}
 	}
+
+	input := Puzzles[s].Q()
+	min, result := math.MaxFloat64, 0
+	for symbol, value := range variance {
+		sum := 0.0
+		for k, v := range value {
+			if k >= len(input) {
+				break
+			}
+			if input[k] != symbol {
+				continue
+			}
+			sum += v
+		}
+		if sum < min {
+			min, result = sum, symbol
+		}
+	}
+	fmt.Println(result)
+
 	return result
 }
 
@@ -422,7 +398,7 @@ func main() {
 	for e := 0; e < 32; e++ {
 		correct := 0
 		for i := range Puzzles {
-			result := Model(false, i, seed)
+			result := Illuminatus(i, seed)
 			histogram[i][result]++
 			if result == Puzzles[i].A() {
 				correct++
