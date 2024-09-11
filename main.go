@@ -12,8 +12,6 @@ import (
 	"runtime"
 
 	"github.com/alixaxel/pagerank"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat"
 )
 
 const (
@@ -347,10 +345,8 @@ var difference = 0
 
 // Model
 func Model(full bool, s int, seed int64) int {
-	input := Puzzles[s].Q()[1:]
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(Puzzles[s]))
-	var y [SymbolsCount]*mat.Dense
 	var avg [SymbolsCount][]float64
 	var c [SymbolsCount]float64
 	var samps [8][]Sample
@@ -361,15 +357,6 @@ func Model(full bool, s int, seed int64) int {
 		}
 		samples := Search(s, seed)
 		samps[i] = samples
-		input := make([][]float64, SymbolsCount)
-		var counts [SymbolsCount]int
-		for sample := range samples {
-			h := samples[sample].S
-			counts[h]++
-		}
-		for j := range input {
-			input[j] = make([]float64, 0, len(samples[0].Ranks)*counts[j])
-		}
 		for sample := range samples {
 			ranks := samples[sample].Ranks
 			h := samples[sample].S
@@ -377,20 +364,9 @@ func Model(full bool, s int, seed int64) int {
 				avg[h] = make([]float64, len(ranks))
 			}
 			c[h]++
-			input[h] = append(input[h], ranks[1:len(ranks)-1]...)
 			for j, rank := range ranks {
 				avg[h][j] += rank
 			}
-		}
-		for j := range counts {
-			x := mat.NewDense(counts[j], len(samples[0].Ranks[1:len(samples[0].Ranks)-1]), input[j])
-			dst := mat.SymDense{}
-			stat.CovarianceMatrix(&dst, x, nil)
-			if y[j] == nil {
-				rr, cc := dst.Dims()
-				y[j] = mat.NewDense(rr, cc, make([]float64, rr*cc))
-			}
-			y[j].Add(y[j], &dst)
 		}
 	}
 	for h := range avg {
@@ -413,82 +389,8 @@ func Model(full bool, s int, seed int64) int {
 			}
 		}
 	}
-	/*max, symbol := 0.0, 0
-	sum := [SymbolsCount]float64{}
-	for h := range y {
-		fa := mat.Formatted(y[h], mat.Squeeze())
-		fmt.Println(fa)
-		rr, cc := y[h].Dims()
-		ranks := make([]float64, rr)
-		for i := 0; i < 32; i++ {
-			graph := pagerank.NewGraph()
-			for i := 0; i < rr; i++ {
-				for j := 0; j < cc; j++ {
-					d := (y[h].At(i, j)*rng.NormFloat64() + avg[h][j])
-					if d > 0 {
-						graph.Link(uint32(i), uint32(j), d)
-					} else {
-						graph.Link(uint32(j), uint32(i), -d)
-					}
-				}
-			}
-			graph.Rank(1, 1e-6, func(node uint32, rank float64) {
-				ranks[node] += float64(rank)
-			})
-		}
-		fmt.Println("ranks", ranks)
-		results := make([]float64, 4)
-		counts := make([]float64, 4)
-		for i, v := range input {
-			results[v] += ranks[i]
-			counts[v]++
-		}
-		for i := range results {
-			results[i] /= counts[i]
-		}
-		fmt.Println("results", results)
-		for i, v := range results {
-			sum[i] += v
-			if v > max {
-				max, symbol = v, i
-			}
-		}
-	}
-	fmt.Println(sum)
-	{
-		max, symbol := 0.0, 0
-		for i, v := range sum {
-			if v > max {
-				max, symbol = v, i
-			}
-		}
-		fmt.Println(max, symbol+1)
-	}
-	fmt.Println(avg)
-	fmt.Println(max, symbol+1)*/
 
-	var account [SymbolsCount][4]float64
-	for h := 0; h < 4; h++ {
-		for i, v := range input {
-			account[h][v] += y[h].At(i, i) /// avg[h][i]
-		}
-		//account[h][h] += y[h].At(len(input), len(input)) / avg[h][h]
-	}
-	for i := range account {
-		fmt.Println(account[i])
-	}
 	result := 0
-	{
-		min, symbol := math.MaxFloat64, 0
-		for i := 0; i < SymbolsCount; i++ {
-			v := account[i][i]
-			if v < min {
-				min, symbol = v, i
-			}
-		}
-		fmt.Println(min, symbol+1)
-		result = symbol
-	}
 	{
 		input := Puzzles[s].Q()
 		min, index := math.MaxFloat64, 0
@@ -508,12 +410,8 @@ func Model(full bool, s int, seed int64) int {
 				min, index = sum, s
 			}
 		}
-		if index < len(input) {
-			fmt.Println(index + 1)
-		}
-		if index != result {
-			difference++
-		}
+		result = index
+		fmt.Println(index + 1)
 	}
 	return result
 }
@@ -536,5 +434,4 @@ func main() {
 	for i := range histogram {
 		fmt.Println(histogram[i])
 	}
-	fmt.Println("difference", difference)
 }
