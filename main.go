@@ -405,7 +405,20 @@ func main() {
 		fmt.Println("correct", correct)
 		seed++
 	}
+	correct := 0
 	for i := range histogram {
-		fmt.Println(histogram[i])
+		max, index := 0, 0
+		for key, value := range histogram[i] {
+			if value > max {
+				max, index = value, key
+			}
+		}
+		status := "incorrect"
+		if index == Puzzles[i].A() {
+			status = "correct"
+			correct++
+		}
+		fmt.Println(histogram[i], status, Puzzles[i])
 	}
+	fmt.Printf("%d/%d correct\n", correct, len(histogram))
 }
