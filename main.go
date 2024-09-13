@@ -18,7 +18,7 @@ const (
 	// Symbols
 	Symbols = ('z' - 'a' + 1) + ('Z' - 'A' + 1) + 3
 	// Size is the link size
-	Size = 32
+	Size = 16
 	// Input is the network input size
 	Input = Size + 2*Size
 	// S is the scaling factor for the softmax
