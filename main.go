@@ -85,10 +85,10 @@ func (p Puzzle) A() int {
 }
 
 var Puzzles = []Puzzle{
-	"^abcdabcdabcda",
+	"^abcdabcdabcdabcda",
 	"^abcdabcdabcdabcdab",
-	"^abcdabcdabcdabc",
-	"^abcdabcdabcdabcd",
+	"^abcdabcdabcdabcdabc",
+	"^abcdabcdabcdabcdabcd",
 	"^abcddcbaabcddcbaabcddcbaabcd",
 	"^aabbccddaabbccddaabbccd",
 	"^aabbccddaabbccddaabbccdd",
@@ -211,12 +211,12 @@ func PageRank(Q, K Matrix) []float64 {
 
 // Sample is a sample
 type Sample struct {
-	A RandomMatrix
-	B RandomMatrix
-	//Order  RandomMatrix
-	//Symbol RandomMatrix
-	S     int
-	Ranks []float64
+	A      RandomMatrix
+	B      RandomMatrix
+	Order  [2]RandomMatrix
+	Symbol [2]RandomMatrix
+	S      int
+	Ranks  []float64
 }
 
 // Search searches for a symbol
@@ -237,118 +237,88 @@ func Search(s int, seed int64) []Sample {
 		for j := i + 1; j < Scale; j++ {
 			samples[index].A = projections[i]
 			samples[index].B = projections[j]
-			//samples[index].Order = order
-			//samples[index].Symbol = symbol
+			seed := rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			order := NewRandomMatrix(Size, length, seed)
+			seed = rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			symbol := NewRandomMatrix(Size, Symbols, seed)
+			samples[index].Order[0] = order
+			samples[index].Symbol[0] = symbol
+			seed = rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			order = NewRandomMatrix(Size, length, seed)
+			seed = rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			symbol = NewRandomMatrix(Size, Symbols, seed)
+			samples[index].Order[1] = order
+			samples[index].Symbol[1] = symbol
 			samples[index].S = index % SymbolsCount
 			index++
 		}
 	}
 
-	var phi [SymbolsCount]Matrix
-	{
-		seed := rng.Int63()
-		if seed == 0 {
-			seed = 1
-		}
-		order := NewRandomMatrix(Size, length, seed)
-		seed = rng.Int63()
-		if seed == 0 {
-			seed = 1
-		}
-		symbol := NewRandomMatrix(Size, Symbols, seed)
+	done := make(chan bool, 8)
+	process := func(sample *Sample) {
+		var phi [2]Matrix
+		phi[0] = NewZeroMatrix(Input, length)
+		phi[1] = NewZeroMatrix(Input, length)
 		for i := range phi {
-			phi[i] = NewZeroMatrix(Input, length)
-
-		}
-
-		for i := range phi {
-			order := order.Sample()
+			phi := &phi[i]
+			order := sample.Order[i].Sample()
 			a, b := 0, 1
-			jj := phi[i].Rows - 1
+			jj := phi.Rows - 1
 			for j := 0; j < jj; j++ {
-				x, y := (j+a)%phi[i].Rows, (j+b)%phi[i].Rows
-				copy(phi[i].Data[j*Input+Size:j*Input+Size+Size],
+				x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
+				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
-				copy(phi[i].Data[j*Input+Size+Size:j*Input+Size+2*Size],
+				copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 				a, b = b, a
 			}
-			if x := jj + a; x < phi[i].Rows {
-				copy(phi[i].Data[jj*Input+Size:jj*Input+Size+Size],
+			if x := jj + a; x < phi.Rows {
+				copy(phi.Data[jj*Input+Size:jj*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
 			}
-			if y := jj + b; y < phi[i].Rows {
-				copy(phi[i].Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
+			if y := jj + b; y < phi.Rows {
+				copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 			}
-			syms := symbol.Sample()
+			syms := sample.Symbol[i].Sample()
 			index := 0
 			input := Puzzles[s].Q()
-			for j := 0; j < len(input); j++ {
-				symbol := syms.Data[Size*input[j] : Size*(input[j]+1)]
-				copy(phi[i].Data[index:index+Input], symbol)
+			for i := 0; i < len(input); i++ {
+				symbol := syms.Data[Size*input[i] : Size*(input[i]+1)]
+				copy(phi.Data[index:index+Input], symbol)
 				index += Input
 			}
-			params := phi[i].Data[Input*(length-2) : Input*length-1]
-			symbol := syms.Data[Size*To[rune(i)] : Size*(To[rune(i)]+1)]
+			params := phi.Data[Input*(length-2) : Input*length-1]
+			symbol := syms.Data[Size*To[rune(sample.S)] : Size*(To[rune(sample.S)]+1)]
 			copy(params, symbol)
 			{
-				params := phi[i].Data[Input*(length-1) : Input*length]
+				params := phi.Data[Input*(length-1) : Input*length]
 				symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
 				copy(params, symbol)
 			}
 		}
-	}
-
-	done := make(chan bool, 8)
-	process := func(sample *Sample) {
-		/*phi := NewZeroMatrix(Input, length)
-		order := sample.Order.Sample()
-		a, b := 0, 1
-		jj := phi.Rows - 1
-		for j := 0; j < jj; j++ {
-			x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
-			copy(phi.Data[j*Input+Size:j*Input+Size+Size],
-				order.Data[x*Size:(x+1)*Size])
-			copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
-				order.Data[(y)*Size:(y+1)*Size])
-			a, b = b, a
-		}
-		if x := jj + a; x < phi.Rows {
-			copy(phi.Data[jj*Input+Size:jj*Input+Size+Size],
-				order.Data[x*Size:(x+1)*Size])
-		}
-		if y := jj + b; y < phi.Rows {
-			copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
-				order.Data[(y)*Size:(y+1)*Size])
-		}
-		syms := sample.Symbol.Sample()
-		index := 0
-		input := Puzzles[s].Q()
-		for i := 0; i < len(input); i++ {
-			symbol := syms.Data[Size*input[i] : Size*(input[i]+1)]
-			copy(phi.Data[index:index+Input], symbol)
-			index += Input
-		}
-		params := phi.Data[Input*(length-2) : Input*length-1]
-		symbol := syms.Data[Size*To[rune(sample.S)] : Size*(To[rune(sample.S)]+1)]
-		copy(params, symbol)
-		{
-			params := phi.Data[Input*(length-1) : Input*length]
-			symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
-			copy(params, symbol)
-		}*/
 		/*for j := 0; j < phi.Rows; j++ {
 			for i := 0; i < phi.Cols; i += 2 {
 				phi.Data[j*phi.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
 				phi.Data[j*phi.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
 			}
 		}*/
-		phi := phi[sample.S]
 		query := sample.A.Sample()
 		key := sample.B.Sample()
-		q := query.MulT(phi)
-		k := key.MulT(phi)
+		q := query.MulT(phi[0])
+		k := key.MulT(phi[1])
 		sample.Ranks = PageRank(q, k)
 		done <- true
 	}
@@ -441,7 +411,7 @@ func Illuminatus(s int, seed int64) int {
 func main() {
 	seed := int64(2)
 	histogram := [7][4]int{}
-	for e := 0; e < 64; e++ {
+	for e := 0; e < 32; e++ {
 		correct := 0
 		for i := range Puzzles {
 			result := Illuminatus(i, seed)
