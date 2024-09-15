@@ -349,100 +349,49 @@ func Search(s int, seed int64) []Sample {
 func Illuminatus(s int, seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(Puzzles[s]))
-	var avg [SymbolsCount][]float64
-	var count [SymbolsCount]float64
 	seed = rng.Int63()
 	if seed == 0 {
 		seed = 1
 	}
 	samples := Search(s, seed)
-	for sample := range samples {
-		ranks := samples[sample].Ranks
-		symbol := samples[sample].S
-		if avg[symbol] == nil {
-			avg[symbol] = make([]float64, len(ranks))
-		}
-		count[symbol]++
-		for j, rank := range ranks {
-			avg[symbol][j] += rank
-		}
-	}
-	for symbol := range avg {
-		for j := range avg[symbol] {
-			avg[symbol][j] /= count[symbol]
-		}
-	}
-
-	var variance [SymbolsCount][]float64
-	for sample := range samples {
-		ranks := samples[sample].Ranks
-		symbol := samples[sample].S
-		if variance[symbol] == nil {
-			variance[symbol] = make([]float64, len(ranks))
-		}
-		for j, rank := range ranks {
-			diff := avg[symbol][j] - rank
-			variance[symbol][j] += diff * diff
-		}
-	}
 
 	input := Puzzles[s].Q()
 	min, result := math.MaxFloat64, 0
-	for symbol, value := range variance {
-		sum := 0.0
-		for k, v := range value {
-			if k >= len(input) {
-				break
+	for symbol := 0; symbol < SymbolsCount; symbol++ {
+		indexes := make([]int, 0, 8)
+		for key, value := range input {
+			if value == symbol {
+				indexes = append(indexes, key)
 			}
-			if input[k] != symbol {
+		}
+		sum, count := 0.0, 0.0
+		for sample := range samples {
+			if samples[sample].S != symbol {
 				continue
 			}
-			sum += v
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				sum += ranks[index]
+				count++
+			}
 		}
-		if sum < min {
-			min, result = sum, symbol
+		average := sum / count
+		variance := 0.0
+		for sample := range samples {
+			if samples[sample].S != symbol {
+				continue
+			}
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				diff := average - ranks[index]
+				variance += diff * diff
+			}
+		}
+		if variance < min {
+			min, result = variance, symbol
 		}
 	}
 	fmt.Println(result)
-
-	{
-		min, result = math.MaxFloat64, 0
-		for symbol := 0; symbol < SymbolsCount; symbol++ {
-			indexes := make([]int, 0, 8)
-			for key, value := range input {
-				if value == symbol {
-					indexes = append(indexes, key)
-				}
-			}
-			sum, count := 0.0, 0.0
-			for sample := range samples {
-				if samples[sample].S != symbol {
-					continue
-				}
-				ranks := samples[sample].Ranks
-				for _, index := range indexes {
-					sum += ranks[index]
-					count++
-				}
-			}
-			average := sum / count
-			variance := 0.0
-			for sample := range samples {
-				if samples[sample].S != symbol {
-					continue
-				}
-				ranks := samples[sample].Ranks
-				for _, index := range indexes {
-					diff := average - ranks[index]
-					variance += diff * diff
-				}
-			}
-			if variance < min {
-				min, result = variance, symbol
-			}
-		}
-		fmt.Println(result)
-	}
 
 	return result
 }
