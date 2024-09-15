@@ -311,7 +311,7 @@ func Search(s int, seed int64) []Sample {
 				index += Input
 			}
 			for i := 0; i < 4; i++ {
-				symbol := syms.Data[Size*To[rune(i)] : Size*(To[rune(i)]+1)]
+				symbol := syms.Data[Size*i : Size*(i+1)]
 				copy(phi.Data[index:index+Input], symbol)
 				index += Input
 			}
