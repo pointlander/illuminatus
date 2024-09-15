@@ -311,7 +311,7 @@ func Search(s int, seed int64) []Sample {
 				index += Input
 			}
 			for i := 0; i < 4; i++ {
-				symbol := syms.Data[Size*i : Size*(i+1)]
+				symbol := syms.Data[Size*sample.S : Size*(sample.S+1)]
 				copy(phi.Data[index:index+Input], symbol)
 				index += Input
 			}
@@ -377,9 +377,9 @@ func Illuminatus(s int, seed int64) int {
 		}
 		sum, count := 0.0, 0.0
 		for sample := range samples {
-			/*if samples[sample].S != symbol {
+			if samples[sample].S != symbol {
 				continue
-			}*/
+			}
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				sum += ranks[index]
@@ -389,9 +389,9 @@ func Illuminatus(s int, seed int64) int {
 		average := sum / count
 		variance := 0.0
 		for sample := range samples {
-			/*if samples[sample].S != symbol {
+			if samples[sample].S != symbol {
 				continue
-			}*/
+			}
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				diff := average - ranks[index]
