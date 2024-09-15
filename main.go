@@ -269,13 +269,14 @@ func Search(s int, seed int64) []Sample {
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
 		var phi [2]Matrix
-		phi[0] = NewZeroMatrix(Input, length)
-		phi[1] = NewZeroMatrix(Input, length)
+		input := Puzzles[s].Q()
+		phi[0] = NewZeroMatrix(Input, length+3)
+		phi[1] = NewZeroMatrix(Input, length+3)
 		for i := range phi {
 			phi := &phi[i]
 			order := sample.Order[i].Sample()
 			a, b := 0, 1
-			jj := phi.Rows - 1
+			jj := phi.Rows - 4
 			for j := 0; j < jj; j++ {
 				x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
 				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
@@ -284,29 +285,39 @@ func Search(s int, seed int64) []Sample {
 					order.Data[(y)*Size:(y+1)*Size])
 				a, b = b, a
 			}
-			if x := jj + a; x < phi.Rows {
+			for j := jj; j < jj+3; j++ {
+				x, y := (jj-1+b)%phi.Rows, (jj-1+a)%phi.Rows
+				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
+					order.Data[x*Size:(x+1)*Size])
+				copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
+					order.Data[(y)*Size:(y+1)*Size])
+			}
+			if x := jj + a; x < order.Rows {
+				jj += 3
 				copy(phi.Data[jj*Input+Size:jj*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
-			}
-			if y := jj + b; y < phi.Rows {
+			} else if y := jj + b; y < order.Rows {
+				jj += 3
 				copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
+			} else {
+				panic("shouldn't be here")
 			}
 			syms := sample.Symbol[i].Sample()
 			index := 0
-			input := Puzzles[s].Q()
 			for i := 0; i < len(input); i++ {
 				symbol := syms.Data[Size*input[i] : Size*(input[i]+1)]
 				copy(phi.Data[index:index+Input], symbol)
 				index += Input
 			}
-			params := phi.Data[Input*(length-2) : Input*length-1]
-			symbol := syms.Data[Size*To[rune(sample.S)] : Size*(To[rune(sample.S)]+1)]
-			copy(params, symbol)
+			for i := 0; i < 4; i++ {
+				symbol := syms.Data[Size*To[rune(i)] : Size*(To[rune(i)]+1)]
+				copy(phi.Data[index:index+Input], symbol)
+				index += Input
+			}
 			{
-				params := phi.Data[Input*(length-1) : Input*length]
 				symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
-				copy(params, symbol)
+				copy(phi.Data[index:index+Input], symbol)
 			}
 		}
 		/*for j := 0; j < phi.Rows; j++ {
@@ -366,9 +377,9 @@ func Illuminatus(s int, seed int64) int {
 		}
 		sum, count := 0.0, 0.0
 		for sample := range samples {
-			if samples[sample].S != symbol {
+			/*if samples[sample].S != symbol {
 				continue
-			}
+			}*/
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				sum += ranks[index]
@@ -378,9 +389,9 @@ func Illuminatus(s int, seed int64) int {
 		average := sum / count
 		variance := 0.0
 		for sample := range samples {
-			if samples[sample].S != symbol {
+			/*if samples[sample].S != symbol {
 				continue
-			}
+			}*/
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				diff := average - ranks[index]
