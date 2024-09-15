@@ -405,6 +405,45 @@ func Illuminatus(s int, seed int64) int {
 	}
 	fmt.Println(result)
 
+	{
+		min, result = math.MaxFloat64, 0
+		for symbol := 0; symbol < SymbolsCount; symbol++ {
+			indexes := make([]int, 0, 8)
+			for key, value := range input {
+				if value == symbol {
+					indexes = append(indexes, key)
+				}
+			}
+			sum, count := 0.0, 0.0
+			for sample := range samples {
+				if samples[sample].S != symbol {
+					continue
+				}
+				ranks := samples[sample].Ranks
+				for _, index := range indexes {
+					sum += ranks[index]
+					count++
+				}
+			}
+			average := sum / count
+			variance := 0.0
+			for sample := range samples {
+				if samples[sample].S != symbol {
+					continue
+				}
+				ranks := samples[sample].Ranks
+				for _, index := range indexes {
+					diff := average - ranks[index]
+					variance += diff * diff
+				}
+			}
+			if variance < min {
+				min, result = variance, symbol
+			}
+		}
+		fmt.Println(result)
+	}
+
 	return result
 }
 
