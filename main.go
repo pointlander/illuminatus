@@ -220,8 +220,8 @@ type Sample struct {
 }
 
 // Search searches for a symbol
-func Search(s int, seed int64) []Sample {
-	length := len(Puzzles[s].Q()) + 2
+func Search(puzzle Puzzle, seed int64) []Sample {
+	length := len(puzzle.Q()) + 1
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
@@ -269,14 +269,14 @@ func Search(s int, seed int64) []Sample {
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
 		var phi [2]Matrix
-		input := Puzzles[s].Q()
-		phi[0] = NewZeroMatrix(Input, length+3)
-		phi[1] = NewZeroMatrix(Input, length+3)
+		input := puzzle.Q()
+		phi[0] = NewZeroMatrix(Input, length)
+		phi[1] = NewZeroMatrix(Input, length)
 		for i := range phi {
 			phi := &phi[i]
 			order := sample.Order[i].Sample()
 			a, b := 0, 1
-			jj := phi.Rows - 4
+			jj := phi.Rows - 1
 			for j := 0; j < jj; j++ {
 				x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
 				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
@@ -285,19 +285,19 @@ func Search(s int, seed int64) []Sample {
 					order.Data[(y)*Size:(y+1)*Size])
 				a, b = b, a
 			}
-			for j := jj; j < jj+3; j++ {
+			/*for j := jj; j < jj+3; j++ {
 				x, y := (jj-1+b)%phi.Rows, (jj-1+a)%phi.Rows
 				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
 				copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
-			}
+			}*/
 			if x := jj + a; x < order.Rows {
-				jj += 3
+				//jj += 3
 				copy(phi.Data[jj*Input+Size:jj*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
 			} else if y := jj + b; y < order.Rows {
-				jj += 3
+				//jj += 3
 				copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 			} else {
@@ -307,11 +307,6 @@ func Search(s int, seed int64) []Sample {
 			index := 0
 			for i := 0; i < len(input); i++ {
 				symbol := syms.Data[Size*input[i] : Size*(input[i]+1)]
-				copy(phi.Data[index:index+Input], symbol)
-				index += Input
-			}
-			for i := 0; i < 4; i++ {
-				symbol := syms.Data[Size*sample.S : Size*(sample.S+1)]
 				copy(phi.Data[index:index+Input], symbol)
 				index += Input
 			}
@@ -357,16 +352,16 @@ func Search(s int, seed int64) []Sample {
 }
 
 // Illuminatus
-func Illuminatus(s int, seed int64) int {
+func Illuminatus(puzzle Puzzle, seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
-	fmt.Println(string(Puzzles[s]))
+	fmt.Println(string(puzzle))
 	seed = rng.Int63()
 	if seed == 0 {
 		seed = 1
 	}
-	samples := Search(s, seed)
+	samples := Search(puzzle, seed)
 
-	input := Puzzles[s].Q()
+	input := puzzle.Q()
 	min, result := math.MaxFloat64, 0
 	for symbol := 0; symbol < SymbolsCount; symbol++ {
 		indexes := make([]int, 0, 8)
@@ -377,9 +372,9 @@ func Illuminatus(s int, seed int64) int {
 		}
 		sum, count := 0.0, 0.0
 		for sample := range samples {
-			if samples[sample].S != symbol {
+			/*if samples[sample].S != symbol {
 				continue
-			}
+			}*/
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				sum += ranks[index]
@@ -389,9 +384,9 @@ func Illuminatus(s int, seed int64) int {
 		average := sum / count
 		variance := 0.0
 		for sample := range samples {
-			if samples[sample].S != symbol {
+			/*if samples[sample].S != symbol {
 				continue
-			}
+			}*/
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				diff := average - ranks[index]
@@ -413,7 +408,7 @@ func main() {
 	for e := 0; e < 32; e++ {
 		correct := 0
 		for i := range Puzzles {
-			result := Illuminatus(i, seed)
+			result := Illuminatus(Puzzles[i], seed)
 			histogram[i][result]++
 			if result == Puzzles[i].A() {
 				correct++
