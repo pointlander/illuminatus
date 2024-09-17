@@ -21,7 +21,7 @@ var Puzzles = []Puzzle{
 	"^aabbccddaabbccddaabbccdd",
 }
 ```
-The last symbol is the puzzle answer, and the prefix to this symbol is the puzzle query. So, "^abcdabcdabcda" has an answer of "a" and a query of "^abcdabcdabcd". The puzzle is encoded as an input matrix. Each row of the input matrix is composed of a random vector linking the row to the previous row, another random vector linking the row to the next row, and a random vector corresponding to the symbol. The last two rows of the input matrix are a symbol guess row which can be one of the symbols abcd, and finally the end symbol: $. The input matrix, I, is multiplied by two randomly chosen matrices: X = AI, Y = BI. X and Y are then multiplied using a cosine similarity normalized dot product to create an adjacency matrix. The adjacency matrix is then fed into page rank:
+The last symbol is the puzzle answer, and the prefix to this symbol is the puzzle query. So, "^abcdabcdabcda" has an answer of "a" and a query of "^abcdabcdabcd". The puzzle is encoded as an input matrix. Each row of the input matrix is composed of a random vector linking the row to the previous row, another random vector linking the row to the next row, and a random vector corresponding to the symbol. The last row of the input matrix is the end symbol: $. The input matrix, I, is multiplied by two randomly chosen matrices: X = AI, Y = BI. X and Y are then multiplied using a cosine similarity normalized dot product to create an adjacency matrix. The adjacency matrix is then fed into page rank:
 ```go
 // PageRank computes the page rank of Q, K
 func PageRank(Q, K Matrix) []float64 {

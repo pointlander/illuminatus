@@ -183,27 +183,27 @@ func (m Matrix) MulT(n Matrix) Matrix {
 }
 
 // PageRank computes the page rank of Q, K
-func PageRank(Q, K Matrix) []float64 {
+func PageRank(x, y Matrix) []float64 {
 	graph := pagerank.NewGraph()
-	for i := 0; i < K.Rows; i++ {
-		K := K.Data[i*K.Cols : (i+1)*K.Cols]
+	for i := 0; i < y.Rows; i++ {
+		yy := y.Data[i*y.Cols : (i+1)*y.Cols]
 		aa := complex(0.0, 0.0)
-		for _, v := range K {
+		for _, v := range yy {
 			aa += v * v
 		}
 		aa = cmplx.Sqrt(aa)
-		for j := 0; j < Q.Rows; j++ {
-			Q := Q.Data[j*Q.Cols : (j+1)*Q.Cols]
+		for j := 0; j < x.Rows; j++ {
+			xx := x.Data[j*x.Cols : (j+1)*x.Cols]
 			bb := complex(0.0, 0.0)
-			for _, v := range Q {
+			for _, v := range xx {
 				bb += v * v
 			}
 			bb = cmplx.Sqrt(bb)
-			d := cmplx.Abs(Dot(K, Q) / (aa * bb))
+			d := cmplx.Abs(Dot(yy, xx) / (aa * bb))
 			graph.Link(uint32(i), uint32(j), d)
 		}
 	}
-	ranks := make([]float64, K.Rows)
+	ranks := make([]float64, y.Rows)
 	graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
 		ranks[node] = rank
 	})
@@ -216,12 +216,11 @@ type Sample struct {
 	B      RandomMatrix
 	Order  [2]RandomMatrix
 	Symbol [2]RandomMatrix
-	S      int
 	Ranks  []float64
 }
 
 // Search searches for a symbol
-func Search(puzzle Puzzle, seed int64) []Sample {
+func (puzzle Puzzle) Search(seed int64) []Sample {
 	length := len(puzzle.Q()) + 1
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
@@ -262,27 +261,26 @@ func Search(puzzle Puzzle, seed int64) []Sample {
 			symbol = NewRandomMatrix(Size, Symbols, seed)
 			samples[index].Order[1] = order
 			samples[index].Symbol[1] = symbol
-			samples[index].S = index % SymbolsCount
 			index++
 		}
 	}
 
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
-		var phi [2]Matrix
-		input := puzzle.Q()
-		phi[0] = NewZeroMatrix(Input, length)
-		phi[1] = NewZeroMatrix(Input, length)
-		for i := range phi {
-			phi := &phi[i]
+		var inputs [2]Matrix
+		q := puzzle.Q()
+		inputs[0] = NewZeroMatrix(Input, length)
+		inputs[1] = NewZeroMatrix(Input, length)
+		for i := range inputs {
+			input := &inputs[i]
 			order := sample.Order[i].Sample()
 			a, b := 0, 1
-			jj := phi.Rows - 1
+			jj := input.Rows - 1
 			for j := 0; j < jj; j++ {
-				x, y := (j+a)%phi.Rows, (j+b)%phi.Rows
-				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
+				x, y := (j+a)%input.Rows, (j+b)%input.Rows
+				copy(input.Data[j*Input+Size:j*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
-				copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
+				copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 				a, b = b, a
 			}
@@ -295,25 +293,25 @@ func Search(puzzle Puzzle, seed int64) []Sample {
 			}*/
 			if x := jj + a; x < order.Rows {
 				//jj += 3
-				copy(phi.Data[jj*Input+Size:jj*Input+Size+Size],
+				copy(input.Data[jj*Input+Size:jj*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
 			} else if y := jj + b; y < order.Rows {
 				//jj += 3
-				copy(phi.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
+				copy(input.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 			} else {
 				panic("shouldn't be here")
 			}
 			syms := sample.Symbol[i].Sample()
 			index := 0
-			for i := 0; i < len(input); i++ {
-				symbol := syms.Data[Size*input[i] : Size*(input[i]+1)]
-				copy(phi.Data[index:index+Input], symbol)
+			for i := 0; i < len(q); i++ {
+				symbol := syms.Data[Size*q[i] : Size*(q[i]+1)]
+				copy(input.Data[index:index+Input], symbol)
 				index += Input
 			}
 			{
 				symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
-				copy(phi.Data[index:index+Input], symbol)
+				copy(input.Data[index:index+Input], symbol)
 			}
 		}
 		/*for j := 0; j < phi.Rows; j++ {
@@ -322,11 +320,11 @@ func Search(puzzle Puzzle, seed int64) []Sample {
 				phi.Data[j*phi.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
 			}
 		}*/
-		query := sample.A.Sample()
-		key := sample.B.Sample()
-		q := query.MulT(phi[0])
-		k := key.MulT(phi[1])
-		sample.Ranks = PageRank(q, k)
+		a := sample.A.Sample()
+		b := sample.B.Sample()
+		x := a.MulT(inputs[0])
+		y := b.MulT(inputs[1])
+		sample.Ranks = PageRank(x, y)
 		done <- true
 	}
 	flight, index, cpus := 0, 0, runtime.NumCPU()
@@ -353,14 +351,14 @@ func Search(puzzle Puzzle, seed int64) []Sample {
 }
 
 // Illuminatus
-func Illuminatus(puzzle Puzzle, seed int64) int {
+func (puzzle Puzzle) Illuminatus(seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
 	seed = rng.Int63()
 	if seed == 0 {
 		seed = 1
 	}
-	samples := Search(puzzle, seed)
+	samples := puzzle.Search(seed)
 
 	input := puzzle.Q()
 	min, result := math.MaxFloat64, 0
@@ -373,9 +371,6 @@ func Illuminatus(puzzle Puzzle, seed int64) int {
 		}
 		sum, count := 0.0, 0.0
 		for sample := range samples {
-			/*if samples[sample].S != symbol {
-				continue
-			}*/
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				sum += ranks[index]
@@ -385,9 +380,6 @@ func Illuminatus(puzzle Puzzle, seed int64) int {
 		average := sum / count
 		variance := 0.0
 		for sample := range samples {
-			/*if samples[sample].S != symbol {
-				continue
-			}*/
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				diff := average - ranks[index]
@@ -409,7 +401,7 @@ func main() {
 	for e := 0; e < 32; e++ {
 		correct := 0
 		for i := range Puzzles {
-			result := Illuminatus(Puzzles[i], seed)
+			result := Puzzles[i].Illuminatus(seed)
 			histogram[i][result]++
 			if result == Puzzles[i].A() {
 				correct++
