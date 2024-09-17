@@ -85,6 +85,7 @@ func (p Puzzle) A() int {
 }
 
 var Puzzles = []Puzzle{
+	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
 	"^abcdabcdabcdabcda",
 	"^abcdabcdabcdabcdab",
 	"^abcdabcdabcdabcdabc",
@@ -146,7 +147,7 @@ func (g RandomMatrix) Sample() Matrix {
 	for i := 0; i < g.Cols*g.Rows; i++ {
 		a := rng.NormFloat64() * factor
 		//b := rng.NormFloat64() * factor
-		sample.Data = append(sample.Data, complex(a, a))
+		sample.Data = append(sample.Data, complex(a, 0))
 	}
 	return sample
 }
