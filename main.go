@@ -361,6 +361,13 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	samples := puzzle.Search(seed)
 
 	input := puzzle.Q()
+	ranks := NewMatrix(len(input)+1, len(samples))
+	for sample := range samples {
+		for _, rank := range samples[sample].Ranks {
+			ranks.Data = append(ranks.Data, complex(rank, 0))
+		}
+	}
+	weights := PageRank(ranks, ranks)
 	min, result := math.MaxFloat64, 0
 	for symbol := 0; symbol < SymbolsCount; symbol++ {
 		indexes := make([]int, 0, 8)
@@ -373,17 +380,17 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		for sample := range samples {
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
-				sum += ranks[index]
+				sum += weights[sample] * ranks[index]
 				count++
 			}
 		}
-		average := sum / count
+		average := sum /// count
 		variance := 0.0
 		for sample := range samples {
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				diff := average - ranks[index]
-				variance += diff * diff
+				variance += weights[sample] * diff * diff
 			}
 		}
 		if variance < min {
