@@ -359,42 +359,65 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		seed = 1
 	}
 	samples := puzzle.Search(seed)
-
 	input := puzzle.Q()
-	ranks := NewMatrix(len(input)+1, len(samples))
-	for sample := range samples {
-		for _, rank := range samples[sample].Ranks {
-			ranks.Data = append(ranks.Data, complex(rank, 0))
+	histogram := make([]int, SymbolsCount)
+	projections := make([]RandomMatrix, Scale)
+	for i := range projections {
+		seed := rng.Int63()
+		if seed == 0 {
+			seed = 1
+		}
+		projections[i] = NewRandomMatrix(len(input)+1, len(input)+1, seed)
+	}
+	for i := 0; i < Scale; i++ {
+		for j := i + 1; j < Scale; j++ {
+			ranks := NewMatrix(len(input)+1, len(samples))
+			for sample := range samples {
+				for _, rank := range samples[sample].Ranks {
+					ranks.Data = append(ranks.Data, complex(rank, 0))
+				}
+			}
+			a := projections[i].Sample()
+			b := projections[j].Sample()
+			x := a.MulT(ranks)
+			y := b.MulT(ranks)
+			weights := PageRank(x, y)
+			min, result := math.MaxFloat64, 0
+			for symbol := 0; symbol < SymbolsCount; symbol++ {
+				indexes := make([]int, 0, 8)
+				for key, value := range input {
+					if value == symbol {
+						indexes = append(indexes, key)
+					}
+				}
+				sum, count := 0.0, 0.0
+				for sample := range samples {
+					ranks := samples[sample].Ranks
+					for _, index := range indexes {
+						sum += weights[sample] * ranks[index]
+						count++
+					}
+				}
+				average := sum /// count
+				variance := 0.0
+				for sample := range samples {
+					ranks := samples[sample].Ranks
+					for _, index := range indexes {
+						diff := average - ranks[index]
+						variance += weights[sample] * diff * diff
+					}
+				}
+				if variance < min {
+					min, result = variance, symbol
+				}
+			}
+			histogram[result]++
 		}
 	}
-	weights := PageRank(ranks, ranks)
-	min, result := math.MaxFloat64, 0
-	for symbol := 0; symbol < SymbolsCount; symbol++ {
-		indexes := make([]int, 0, 8)
-		for key, value := range input {
-			if value == symbol {
-				indexes = append(indexes, key)
-			}
-		}
-		sum, count := 0.0, 0.0
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			for _, index := range indexes {
-				sum += weights[sample] * ranks[index]
-				count++
-			}
-		}
-		average := sum /// count
-		variance := 0.0
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			for _, index := range indexes {
-				diff := average - ranks[index]
-				variance += weights[sample] * diff * diff
-			}
-		}
-		if variance < min {
-			min, result = variance, symbol
+	max, result := 0, 0
+	for key, value := range histogram {
+		if value > max {
+			max, result = value, key
 		}
 	}
 	fmt.Println(result)
