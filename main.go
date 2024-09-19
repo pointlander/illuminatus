@@ -354,6 +354,12 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 
 // Illuminatus
 func (puzzle Puzzle) Illuminatus(seed int64) int {
+	const (
+		// Scale is the scale of the search
+		MetaScale = 7
+		// Samples is the number of samplee
+		MetaSamples = MetaScale * (MetaScale - 1) / 2
+	)
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
 	seed = rng.Int63()
@@ -362,7 +368,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	}
 	samples := puzzle.Search(seed)
 	input := puzzle.Q()
-	projections := make([]RandomMatrix, Scale)
+	projections := make([]RandomMatrix, MetaScale)
 	for i := range projections {
 		seed := rng.Int63()
 		if seed == 0 {
@@ -371,8 +377,8 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		projections[i] = NewRandomMatrix(len(input)+1, len(input)+1, seed)
 	}
 	results := make([][]float64, 0, 8)
-	for i := 0; i < Scale; i++ {
-		for j := i + 1; j < Scale; j++ {
+	for i := 0; i < MetaScale; i++ {
+		for j := i + 1; j < MetaScale; j++ {
 			ranks := NewMatrix(len(input)+1, len(samples))
 			for sample := range samples {
 				for _, rank := range samples[sample].Ranks {
