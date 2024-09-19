@@ -10,7 +10,6 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"runtime"
-	"sort"
 
 	"github.com/alixaxel/pagerank"
 )
@@ -368,7 +367,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	}
 	samples := puzzle.Search(seed)
 	input := puzzle.Q()
-	projections := make([]RandomMatrix, MetaScale)
+	/*projections := make([]RandomMatrix, MetaScale)
 	for i := range projections {
 		seed := rng.Int63()
 		if seed == 0 {
@@ -414,7 +413,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	}
 	sort.Slice(samples, func(i, j int) bool {
 		return samples[i].Variance < samples[j].Variance
-	})
+	})*/
 
 	min, result := math.MaxFloat64, 0
 	for symbol := 0; symbol < SymbolsCount; symbol++ {
