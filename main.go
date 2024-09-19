@@ -425,7 +425,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			}
 		}
 		sum, count := 0.0, 0.0
-		for sample := range samples[:32] {
+		for sample := range samples {
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				sum += ranks[index]
@@ -434,7 +434,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 		average := sum / count
 		variance := 0.0
-		for sample := range samples[:32] {
+		for sample := range samples {
 			ranks := samples[sample].Ranks
 			for _, index := range indexes {
 				diff := average - ranks[index]
@@ -452,7 +452,138 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 
 // Turing is turing mode
 func Turing() {
+	rng := rand.New(rand.NewSource(1))
+	seed := rng.Int63()
+	if seed == 0 {
+		seed = 1
+	}
+	tape := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	length := len(tape)
+	projections := make([]RandomMatrix, Scale)
+	for i := range projections {
+		seed := rng.Int63()
+		if seed == 0 {
+			seed = 1
+		}
+		projections[i] = NewRandomMatrix(Input, Input, seed)
+	}
+	index := 0
+	samples := make([]Sample, Samples)
+	for i := 0; i < Scale; i++ {
+		for j := i + 1; j < Scale; j++ {
+			samples[index].A = projections[i]
+			samples[index].B = projections[j]
+			seed := rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			order := NewRandomMatrix(Size, length, seed)
+			seed = rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			symbol := NewRandomMatrix(Size, Symbols, seed)
+			samples[index].Order[0] = order
+			samples[index].Symbol[0] = symbol
+			seed = rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			order = NewRandomMatrix(Size, length, seed)
+			seed = rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			symbol = NewRandomMatrix(Size, Symbols, seed)
+			samples[index].Order[1] = order
+			samples[index].Symbol[1] = symbol
+			index++
+		}
+	}
 
+	done := make(chan bool, 8)
+	process := func(sample *Sample) {
+		var inputs [2]Matrix
+		inputs[0] = NewZeroMatrix(Input, length)
+		inputs[1] = NewZeroMatrix(Input, length)
+		for i := range inputs {
+			input := &inputs[i]
+			order := sample.Order[i].Sample()
+			a, b := 0, 1
+			jj := input.Rows
+			for j := 0; j < jj; j++ {
+				x, y := (j+a)%input.Rows, (j+b)%input.Rows
+				copy(input.Data[j*Input+Size:j*Input+Size+Size],
+					order.Data[x*Size:(x+1)*Size])
+				copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
+					order.Data[(y)*Size:(y+1)*Size])
+				a, b = b, a
+			}
+			syms := sample.Symbol[i].Sample()
+			index := 0
+			for i := 0; i < len(tape); i++ {
+				symbol := syms.Data[Size*tape[i] : Size*(tape[i]+1)]
+				copy(input.Data[index:index+Input], symbol)
+				index += Input
+			}
+		}
+		a := sample.A.Sample()
+		b := sample.B.Sample()
+		x := a.MulT(inputs[0])
+		y := b.MulT(inputs[1])
+		sample.Ranks = PageRank(x, y)
+		done <- true
+	}
+	flight, index, cpus := 0, 0, runtime.NumCPU()
+	for flight < cpus && index < len(samples) {
+		sample := &samples[index]
+		go process(sample)
+		index++
+		flight++
+	}
+	for index < len(samples) {
+		<-done
+		flight--
+
+		sample := &samples[index]
+		go process(sample)
+		index++
+		flight++
+	}
+	for i := 0; i < flight; i++ {
+		<-done
+	}
+
+	min, result := math.MaxFloat64, 0
+	for symbol := 0; symbol < 2; symbol++ {
+		indexes := make([]int, 0, 8)
+		for key, value := range tape {
+			if int(value) == symbol {
+				indexes = append(indexes, key)
+			}
+		}
+		sum, count := 0.0, 0.0
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				sum += ranks[index]
+				count++
+			}
+		}
+		average := sum / count
+		variance := 0.0
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				diff := average - ranks[index]
+				variance += diff * diff
+			}
+		}
+		if variance < min {
+			min, result = variance, symbol
+		}
+	}
+	fmt.Println(result)
 }
 
 var (
@@ -464,7 +595,7 @@ func main() {
 	flag.Parse()
 
 	if *FlagTuring {
-
+		Turing()
 		return
 	}
 
