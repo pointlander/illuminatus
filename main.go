@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"math/cmplx"
@@ -449,7 +450,24 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	return result
 }
 
+// Turing is turing mode
+func Turing() {
+
+}
+
+var (
+	// FlagTuring in turing mode
+	FlagTuring = flag.Bool("turing", false, "turing mode")
+)
+
 func main() {
+	flag.Parse()
+
+	if *FlagTuring {
+
+		return
+	}
+
 	seed := int64(2)
 	histogram := [7][4]int{}
 	for e := 0; e < 32; e++ {
