@@ -10,6 +10,7 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"runtime"
+	"sort"
 
 	"github.com/alixaxel/pagerank"
 )
@@ -212,11 +213,12 @@ func PageRank(x, y Matrix) []float64 {
 
 // Sample is a sample
 type Sample struct {
-	A      RandomMatrix
-	B      RandomMatrix
-	Order  [2]RandomMatrix
-	Symbol [2]RandomMatrix
-	Ranks  []float64
+	A        RandomMatrix
+	B        RandomMatrix
+	Order    [2]RandomMatrix
+	Symbol   [2]RandomMatrix
+	Ranks    []float64
+	Variance float64
 }
 
 // Search searches for a symbol
@@ -360,7 +362,6 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	}
 	samples := puzzle.Search(seed)
 	input := puzzle.Q()
-	histogram := make([]int, SymbolsCount)
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
 		seed := rng.Int63()
@@ -369,6 +370,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 		projections[i] = NewRandomMatrix(len(input)+1, len(input)+1, seed)
 	}
+	results := make([][]float64, 0, 8)
 	for i := 0; i < Scale; i++ {
 		for j := i + 1; j < Scale; j++ {
 			ranks := NewMatrix(len(input)+1, len(samples))
@@ -381,43 +383,60 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			b := projections[j].Sample()
 			x := a.MulT(ranks)
 			y := b.MulT(ranks)
-			weights := PageRank(x, y)
-			min, result := math.MaxFloat64, 0
-			for symbol := 0; symbol < SymbolsCount; symbol++ {
-				indexes := make([]int, 0, 8)
-				for key, value := range input {
-					if value == symbol {
-						indexes = append(indexes, key)
-					}
-				}
-				sum, count := 0.0, 0.0
-				for sample := range samples {
-					ranks := samples[sample].Ranks
-					for _, index := range indexes {
-						sum += weights[sample] * ranks[index]
-						count++
-					}
-				}
-				average := sum /// count
-				variance := 0.0
-				for sample := range samples {
-					ranks := samples[sample].Ranks
-					for _, index := range indexes {
-						diff := average - ranks[index]
-						variance += weights[sample] * diff * diff
-					}
-				}
-				if variance < min {
-					min, result = variance, symbol
-				}
-			}
-			histogram[result]++
+			result := PageRank(x, y)
+			results = append(results, result)
 		}
 	}
-	max, result := 0, 0
-	for key, value := range histogram {
-		if value > max {
-			max, result = value, key
+	averages := make([]float64, Samples)
+	for _, result := range results {
+		for i := range result {
+			averages[i] += result[i]
+		}
+	}
+	for i := range averages {
+		averages[i] /= float64(len(results))
+	}
+	variances := make([]float64, Samples)
+	for _, result := range results {
+		for i := range result {
+			diff := averages[i] - result[i]
+			variances[i] += diff * diff
+		}
+	}
+	for i := range variances {
+		samples[i].Variance = variances[i]
+	}
+	sort.Slice(samples, func(i, j int) bool {
+		return samples[i].Variance < samples[j].Variance
+	})
+
+	min, result := math.MaxFloat64, 0
+	for symbol := 0; symbol < SymbolsCount; symbol++ {
+		indexes := make([]int, 0, 8)
+		for key, value := range input {
+			if value == symbol {
+				indexes = append(indexes, key)
+			}
+		}
+		sum, count := 0.0, 0.0
+		for sample := range samples[:32] {
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				sum += ranks[index]
+				count++
+			}
+		}
+		average := sum / count
+		variance := 0.0
+		for sample := range samples[:32] {
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				diff := average - ranks[index]
+				variance += diff * diff
+			}
+		}
+		if variance < min {
+			min, result = variance, symbol
 		}
 	}
 	fmt.Println(result)
