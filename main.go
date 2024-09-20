@@ -457,8 +457,9 @@ func Turing() {
 	tape := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	for i := 0; i < 33; i++ {
 		state := Step(rng, tape)
+		current := tape[head]
 		tape[head] = byte(state)
-		if state == 0 {
+		if (current^byte(state))&1 == 0 {
 			head = (head + 8 - 1) % 8
 		} else {
 			head = (head + 1) % 8
