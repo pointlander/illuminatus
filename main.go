@@ -452,7 +452,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 
 // Turing is turing mode
 func Turing() {
-	rng := rand.New(rand.NewSource(1))
+	rng := rand.New(rand.NewSource(33))
 	head := 3
 	tape := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	for i := 0; i < 33; i++ {
