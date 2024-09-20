@@ -453,11 +453,22 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 // Turing is turing mode
 func Turing() {
 	rng := rand.New(rand.NewSource(1))
-	seed := rng.Int63()
-	if seed == 0 {
-		seed = 1
-	}
+	head := 3
 	tape := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	for i := 0; i < 33; i++ {
+		state := Step(rng, tape)
+		tape[head] = byte(state)
+		if state == 0 {
+			head = (head + 8 - 1) % 8
+		} else {
+			head = (head + 1) % 8
+		}
+		fmt.Println(tape)
+	}
+}
+
+// Step steps the turing machine
+func Step(rng *rand.Rand, tape []byte) int {
 	length := len(tape)
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
@@ -583,7 +594,7 @@ func Turing() {
 			min, result = variance, symbol
 		}
 	}
-	fmt.Println(result)
+	return result
 }
 
 var (
