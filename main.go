@@ -454,17 +454,33 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 func Turing() {
 	rng := rand.New(rand.NewSource(33))
 	head := 3
+	head2 := 5
 	tape := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	tape2 := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	for i := 0; i < 33; i++ {
-		state := Step(rng, tape)
-		current := tape[head]
-		tape[head] = byte(state)
-		if (current^byte(state))&1 == 0 {
-			head = (head + 8 - 1) % 8
-		} else {
-			head = (head + 1) % 8
+		for j := 0; j < 8; j++ {
+			state := Step(rng, tape)
+			current := tape[head]
+			tape[head] = byte(state)
+			if (current^byte(state))&1 == 0 {
+				head = (head + 8 - 1) % 8
+			} else {
+				head = (head + 1) % 8
+			}
+
+			state2 := Step(rng, tape2)
+			current2 := tape2[head2]
+			tape2[head2] = byte(state2)
+			if (current2^byte(state2))&1 == 0 {
+				head2 = (head2 + 8 - 1) % 8
+			} else {
+				head2 = (head2 + 1) % 8
+			}
+
+			fmt.Println(tape, tape2)
 		}
-		fmt.Println(tape)
+
+		copy(tape[:4], tape[4:])
 	}
 }
 
