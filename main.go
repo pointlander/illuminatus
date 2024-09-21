@@ -470,6 +470,7 @@ func Turing() {
 
 // Step steps the turing machine
 func Step(rng *rand.Rand, tape []byte) int {
+	const Symbols = 2
 	length := len(tape)
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
@@ -567,7 +568,7 @@ func Step(rng *rand.Rand, tape []byte) int {
 	}
 
 	min, result := math.MaxFloat64, 0
-	for symbol := 0; symbol < 2; symbol++ {
+	for symbol := 0; symbol < Symbols; symbol++ {
 		indexes := make([]int, 0, 8)
 		for key, value := range tape {
 			if int(value) == symbol {
