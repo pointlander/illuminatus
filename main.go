@@ -450,37 +450,53 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	return result
 }
 
+// Cell is a cell
+type Cell struct {
+	Head int
+	Tape []byte
+}
+
+// NewCell creates a new cell
+func NewCell(rng *rand.Rand, size int) Cell {
+	tape := make([]byte, size)
+	for i := range tape {
+		tape[i] = byte(rng.Intn(2))
+	}
+	head := rng.Intn(size)
+	return Cell{
+		Head: head,
+		Tape: tape,
+	}
+}
+
+// Step steps the cell
+func (c *Cell) Step(rng *rand.Rand) {
+	state := Step(rng, c.Tape)
+	current := c.Tape[c.Head]
+	c.Tape[c.Head] = byte(state)
+	if (current^byte(state))&1 == 0 {
+		c.Head = (c.Head + 8 - 1) % 8
+	} else {
+		c.Head = (c.Head + 1) % 8
+	}
+}
+
 // Turing is turing mode
 func Turing() {
 	rng := rand.New(rand.NewSource(33))
-	head := 3
-	head2 := 5
-	tape := []byte{0, 1, 0, 1, 0, 1, 0, 1}
-	tape2 := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	cells := make([]Cell, 2)
+	for i := range cells {
+		cells[i] = NewCell(rng, 8)
+	}
 	for i := 0; i < 33; i++ {
 		for j := 0; j < 8; j++ {
-			state := Step(rng, tape)
-			current := tape[head]
-			tape[head] = byte(state)
-			if (current^byte(state))&1 == 0 {
-				head = (head + 8 - 1) % 8
-			} else {
-				head = (head + 1) % 8
+			for k := range cells {
+				cells[k].Step(rng)
 			}
-
-			state2 := Step(rng, tape2)
-			current2 := tape2[head2]
-			tape2[head2] = byte(state2)
-			if (current2^byte(state2))&1 == 0 {
-				head2 = (head2 + 8 - 1) % 8
-			} else {
-				head2 = (head2 + 1) % 8
-			}
-
-			fmt.Println(tape, tape2)
+			fmt.Println(cells[0].Tape, cells[1].Tape)
 		}
 
-		copy(tape[:4], tape[4:])
+		copy(cells[0].Tape[:4], cells[1].Tape[4:])
 	}
 }
 
