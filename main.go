@@ -526,9 +526,15 @@ func Turing() {
 		for j := 0; j < 4; j++ {
 			a, b := cells[rng.Intn(4)].Copy(), cells[rng.Intn(4)].Copy()
 			buffer := make([]byte, 4)
-			copy(buffer, a.Tape[:4])
-			copy(a.Tape[:4], b.Tape[4:])
-			copy(b.Tape[4:], buffer)
+			if rng.Intn(2) == 0 {
+				copy(buffer, a.Tape[:4])
+				copy(a.Tape[:4], b.Tape[:4])
+				copy(b.Tape[:4], buffer)
+			} else {
+				copy(buffer, a.Tape[4:])
+				copy(a.Tape[4:], b.Tape[4:])
+				copy(b.Tape[4:], buffer)
+			}
 			cells = append(cells, a, b)
 		}
 		for k := range cells {
