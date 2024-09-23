@@ -513,7 +513,7 @@ func Turing() {
 		if bits == 0 {
 			return math.MaxFloat64
 		}
-		return float64(49 % bits)
+		return float64(uint64(*FlagTarget) % bits)
 	}
 	for i := range cells {
 		cells[i] = NewCell(rng, 8)
@@ -523,7 +523,7 @@ func Turing() {
 		return cells[i].Loss < cells[j].Loss
 	})
 	for i := 0; i < 33; i++ {
-		for j := 0; j < 2; j++ {
+		for j := 0; j < 4; j++ {
 			a, b := cells[rng.Intn(4)].Copy(), cells[rng.Intn(4)].Copy()
 			buffer := make([]byte, 4)
 			copy(buffer, a.Tape[:4])
@@ -549,7 +549,7 @@ func Turing() {
 		for j := range cells {
 			bits := cells[j].Bits()
 			if cells[j].Loss == 0 {
-				if bits != 0 && bits != 1 && bits != 49 {
+				if bits != 0 && bits != 1 && bits != uint64(*FlagTarget) {
 					fmt.Println("found", bits)
 					return
 				} else {
@@ -695,6 +695,8 @@ func Step(rng *rand.Rand, tape []byte) int {
 var (
 	// FlagTuring in turing mode
 	FlagTuring = flag.Bool("turing", false, "turing mode")
+	// FlagTarget is the factoring target
+	FlagTarget = flag.Int("t", 49, "factoring target")
 )
 
 func main() {
