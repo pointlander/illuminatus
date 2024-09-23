@@ -11,6 +11,7 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"runtime"
+	"sort"
 
 	"github.com/alixaxel/pagerank"
 )
@@ -452,6 +453,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 
 // Cell is a cell
 type Cell struct {
+	Loss float64
 	Head int
 	Tape []byte
 }
@@ -484,7 +486,7 @@ func (c *Cell) Step(rng *rand.Rand) {
 // Turing is turing mode
 func Turing() {
 	rng := rand.New(rand.NewSource(33))
-	cells := make([]Cell, 2)
+	cells := make([]Cell, 8)
 	for i := range cells {
 		cells[i] = NewCell(rng, 8)
 	}
@@ -493,10 +495,33 @@ func Turing() {
 			for k := range cells {
 				cells[k].Step(rng)
 			}
-			fmt.Println(cells[0].Tape, cells[1].Tape)
+			for j := range cells {
+				bits := 0
+				for _, bit := range cells[j].Tape {
+					bits <<= 1
+					if bit == 1 {
+						bits |= 1
+					}
+				}
+				loss := float64(49 % bits)
+				cells[j].Loss = loss
+				if loss == 0 {
+					fmt.Println("found", bits)
+					return
+				}
+			}
 		}
-
-		copy(cells[0].Tape[:4], cells[1].Tape[4:])
+		sort.Slice(cells, func(i, j int) bool {
+			return cells[i].Loss < cells[j].Loss
+		})
+		fmt.Println(cells[0].Loss)
+		for j := 0; j < 2; j++ {
+			a, b := rng.Intn(4), rng.Intn(4)
+			buffer := make([]byte, 4)
+			copy(buffer, cells[a].Tape[:4])
+			copy(cells[a].Tape[:4], cells[b].Tape[4:])
+			copy(cells[b].Tape[4:], buffer)
+		}
 	}
 }
 
