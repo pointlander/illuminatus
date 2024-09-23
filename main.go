@@ -522,8 +522,17 @@ func Turing() {
 			copy(buffer, a.Tape[:4])
 			copy(a.Tape[:4], b.Tape[4:])
 			copy(b.Tape[4:], buffer)
-			_, a.Loss = loss(a)
-			_, b.Loss = loss(b)
+			var bits int
+			bits, a.Loss = loss(a)
+			if a.Loss == 0 && bits != 0 && bits != 1 && bits != 49 {
+				fmt.Println("found", bits)
+				return
+			}
+			bits, b.Loss = loss(b)
+			if b.Loss == 0 && bits != 0 && bits != 1 && bits != 49 {
+				fmt.Println("found", bits)
+				return
+			}
 			cells = append(cells, a, b)
 		}
 		for k := range cells {
@@ -532,7 +541,7 @@ func Turing() {
 				a.Step(rng)
 				bits, l := loss(a)
 				cells[j].Loss = l
-				if l == 0 && bits != 0 && bits != 1 {
+				if l == 0 && bits != 0 && bits != 1 && bits != 49 {
 					fmt.Println("found", bits)
 					return
 				}
