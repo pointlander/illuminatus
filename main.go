@@ -471,6 +471,18 @@ func NewCell(rng *rand.Rand, size int) Cell {
 	}
 }
 
+// Bits returns the bits
+func (c Cell) Bits() uint64 {
+	bits := uint64(0)
+	for _, bit := range c.Tape {
+		bits <<= 1
+		if bit == 1 {
+			bits |= 1
+		}
+	}
+	return bits
+}
+
 // Step steps the cell
 func (c *Cell) Step(rng *rand.Rand) {
 	state := Step(rng, c.Tape)
@@ -485,6 +497,7 @@ func (c *Cell) Step(rng *rand.Rand) {
 
 func (c Cell) Copy() Cell {
 	tape := make([]byte, len(c.Tape))
+	copy(tape, c.Tape)
 	return Cell{
 		Head: c.Head,
 		Tape: tape,
@@ -495,22 +508,16 @@ func (c Cell) Copy() Cell {
 func Turing() {
 	rng := rand.New(rand.NewSource(33))
 	cells := make([]Cell, 8)
-	loss := func(a Cell) (int, float64) {
-		bits := 0
-		for _, bit := range a.Tape {
-			bits <<= 1
-			if bit == 1 {
-				bits |= 1
-			}
-		}
+	loss := func(a Cell) float64 {
+		bits := a.Bits()
 		if bits == 0 {
-			return 0, 0
+			return math.MaxFloat64
 		}
-		return bits, float64(49 % bits)
+		return float64(49 % bits)
 	}
 	for i := range cells {
 		cells[i] = NewCell(rng, 8)
-		_, cells[i].Loss = loss(cells[i])
+		cells[i].Loss = loss(cells[i])
 	}
 	sort.Slice(cells, func(i, j int) bool {
 		return cells[i].Loss < cells[j].Loss
@@ -522,36 +529,34 @@ func Turing() {
 			copy(buffer, a.Tape[:4])
 			copy(a.Tape[:4], b.Tape[4:])
 			copy(b.Tape[4:], buffer)
-			var bits int
-			bits, a.Loss = loss(a)
-			if a.Loss == 0 && bits != 0 && bits != 1 && bits != 49 {
-				fmt.Println("found", bits)
-				return
-			}
-			bits, b.Loss = loss(b)
-			if b.Loss == 0 && bits != 0 && bits != 1 && bits != 49 {
-				fmt.Println("found", bits)
-				return
-			}
 			cells = append(cells, a, b)
 		}
 		for k := range cells {
 			a := cells[k].Copy()
 			for j := 0; j < 8; j++ {
 				a.Step(rng)
-				bits, l := loss(a)
-				cells[j].Loss = l
-				if l == 0 && bits != 0 && bits != 1 && bits != 49 {
-					fmt.Println("found", bits)
-					return
-				}
+				cells = append(cells, a)
+				a = a.Copy()
 			}
-			cells = append(cells, a)
+		}
+		for j := range cells {
+			cells[j].Loss = loss(cells[j])
 		}
 		sort.Slice(cells, func(i, j int) bool {
 			return cells[i].Loss < cells[j].Loss
 		})
-		fmt.Println(cells[0].Loss)
+		fmt.Println(cells[0].Loss, cells[0].Bits())
+		for j := range cells {
+			bits := cells[j].Bits()
+			if cells[j].Loss == 0 {
+				if bits != 0 && bits != 1 && bits != 49 {
+					fmt.Println("found", bits)
+					return
+				} else {
+					cells[j] = NewCell(rng, 8)
+				}
+			}
+		}
 		cells = cells[:8]
 	}
 }
