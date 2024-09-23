@@ -483,6 +483,14 @@ func (c *Cell) Step(rng *rand.Rand) {
 	}
 }
 
+func (c Cell) Copy() Cell {
+	tape := make([]byte, len(c.Tape))
+	return Cell{
+		Head: c.Head,
+		Tape: tape,
+	}
+}
+
 // Turing is turing mode
 func Turing() {
 	rng := rand.New(rand.NewSource(33))
@@ -491,37 +499,41 @@ func Turing() {
 		cells[i] = NewCell(rng, 8)
 	}
 	for i := 0; i < 33; i++ {
-		for j := 0; j < 8; j++ {
-			for k := range cells {
-				cells[k].Step(rng)
-			}
-			for j := range cells {
-				bits := 0
-				for _, bit := range cells[j].Tape {
-					bits <<= 1
-					if bit == 1 {
-						bits |= 1
+		for j := 0; j < 2; j++ {
+			a, b := cells[rng.Intn(4)].Copy(), cells[rng.Intn(4)].Copy()
+			buffer := make([]byte, 4)
+			copy(buffer, a.Tape[:4])
+			copy(a.Tape[:4], b.Tape[4:])
+			copy(b.Tape[4:], buffer)
+			cells = append(cells, a, b)
+		}
+		for k := range cells {
+			a := cells[k].Copy()
+			for j := 0; j < 8; j++ {
+				a.Step(rng)
+				for j := range cells {
+					bits := 0
+					for _, bit := range a.Tape {
+						bits <<= 1
+						if bit == 1 {
+							bits |= 1
+						}
+					}
+					loss := float64(49 % bits)
+					cells[j].Loss = loss
+					if loss == 0 && bits != 1 {
+						fmt.Println("found", bits)
+						return
 					}
 				}
-				loss := float64(49 % bits)
-				cells[j].Loss = loss
-				if loss == 0 {
-					fmt.Println("found", bits)
-					return
-				}
 			}
+			cells = append(cells, a)
 		}
 		sort.Slice(cells, func(i, j int) bool {
 			return cells[i].Loss < cells[j].Loss
 		})
 		fmt.Println(cells[0].Loss)
-		for j := 0; j < 2; j++ {
-			a, b := rng.Intn(4), rng.Intn(4)
-			buffer := make([]byte, 4)
-			copy(buffer, cells[a].Tape[:4])
-			copy(cells[a].Tape[:4], cells[b].Tape[4:])
-			copy(cells[b].Tape[4:], buffer)
-		}
+		cells = cells[:8]
 	}
 }
 
