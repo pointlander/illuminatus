@@ -519,6 +519,23 @@ func Turing() {
 		cells[i] = NewCell(rng, 8)
 		cells[i].Loss = loss(cells[i])
 	}
+	guess := uint64(*FlagTarget)
+	last := guess
+	guess = uint64(math.Round(math.Sqrt(float64(guess))))
+	for guess != last {
+		last = guess
+		cell := NewCell(rng, 8)
+		mask := 0x80
+		for i := range cell.Tape {
+			if uint64(mask>>i)&guess != 0 {
+				cell.Tape[i] = 1
+			} else {
+				cell.Tape[i] = 0
+			}
+		}
+		guess = uint64(math.Round(math.Sqrt(float64(guess))))
+		cells = append(cells, cell)
+	}
 	sort.Slice(cells, func(i, j int) bool {
 		return cells[i].Loss < cells[j].Loss
 	})
