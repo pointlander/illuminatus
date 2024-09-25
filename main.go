@@ -460,6 +460,7 @@ const (
 
 // Cell is a cell
 type Cell struct {
+	Age  float64
 	Loss float64
 	Head int
 	Tape []byte
@@ -573,11 +574,12 @@ func Turing() {
 			cells[j].Loss = loss(cells[j])
 		}
 		sort.Slice(cells, func(i, j int) bool {
-			return cells[i].Loss < cells[j].Loss
+			return cells[i].Loss+cells[i].Age < cells[j].Loss+cells[j].Age
 		})
 		fmt.Println(cells[0].Loss, cells[0].Bits())
 		for j := range cells {
 			bits := cells[j].Bits()
+			cells[j].Age++
 			if cells[j].Loss == 0 {
 				if bits != 0 && bits != 1 && bits != uint64(*FlagTarget) {
 					fmt.Println("found", bits)
