@@ -451,6 +451,13 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	return result
 }
 
+const (
+	// TapeSize is the size of the tape
+	TapeSize = 64
+	// TapeMask is the mask for the MSB of the tape
+	TapeMask = 1 << (TapeSize - 1)
+)
+
 // Cell is a cell
 type Cell struct {
 	Loss float64
@@ -489,9 +496,9 @@ func (c *Cell) Step(rng *rand.Rand) {
 	current := c.Tape[c.Head]
 	c.Tape[c.Head] = byte(state)
 	if (current^byte(state))&1 == 0 {
-		c.Head = (c.Head + 8 - 1) % 8
+		c.Head = (c.Head + TapeSize - 1) % TapeSize
 	} else {
-		c.Head = (c.Head + 1) % 8
+		c.Head = (c.Head + 1) % TapeSize
 	}
 }
 
@@ -516,7 +523,7 @@ func Turing() {
 		return float64(uint64(*FlagTarget) % bits)
 	}
 	for i := range cells {
-		cells[i] = NewCell(rng, 8)
+		cells[i] = NewCell(rng, TapeSize)
 		cells[i].Loss = loss(cells[i])
 	}
 	guess := uint64(*FlagTarget)
@@ -524,10 +531,10 @@ func Turing() {
 	guess = uint64(math.Round(math.Sqrt(float64(guess))))
 	for guess != last {
 		last = guess
-		cell := NewCell(rng, 8)
-		mask := 0x80
+		cell := NewCell(rng, TapeSize)
+		mask := uint64(TapeMask)
 		for i := range cell.Tape {
-			if uint64(mask>>i)&guess != 0 {
+			if (mask>>i)&guess != 0 {
 				cell.Tape[i] = 1
 			} else {
 				cell.Tape[i] = 0
@@ -556,7 +563,7 @@ func Turing() {
 		}
 		for k := range cells {
 			a := cells[k].Copy()
-			for j := 0; j < 8; j++ {
+			for j := 0; j < TapeSize; j++ {
 				a.Step(rng)
 				cells = append(cells, a)
 				a = a.Copy()
@@ -576,7 +583,7 @@ func Turing() {
 					fmt.Println("found", bits)
 					return
 				} else {
-					cells[j] = NewCell(rng, 8)
+					cells[j] = NewCell(rng, TapeSize)
 				}
 			}
 		}
