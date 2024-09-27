@@ -217,7 +217,7 @@ func Swarm(target int) {
 	}
 	for {
 		graph := pagerank.NewGraph()
-		for i := 0; i < 33; i++ {
+		for i := 0; i < 256; i++ {
 			a := make([]int, 8)
 			for j := range a {
 				a[j] = rng.Intn(len(cells))
@@ -252,7 +252,7 @@ func Swarm(target int) {
 			return cells[i].Rank > cells[j].Rank
 		})
 		min := uint64(math.MaxUint64)
-		for i := 0; i < 33; i++ {
+		for i := 0; i < 256; i++ {
 			a := make([]int, 8)
 			for j := range a {
 				sum, r := 0.0, rng.Float64()
@@ -287,7 +287,9 @@ func Swarm(target int) {
 		fmt.Println(min)
 		cells = cells[:32]
 		for i := 0; i < 32; i++ {
-			cells = append(cells, cells[i].Copy())
+			cp := cells[i].Copy()
+			cp.Step(rng)
+			cells = append(cells, cp)
 		}
 	}
 }
