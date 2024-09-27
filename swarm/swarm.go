@@ -159,6 +159,7 @@ type Sample struct {
 type Cell struct {
 	Head int
 	Tape []byte
+	Rank float64
 }
 
 // NewCell creates a new cell
@@ -214,51 +215,80 @@ func Swarm(target int) {
 	for i := range cells {
 		cells[i] = NewCell(rng, TapeSize)
 	}
-	graph := pagerank.NewGraph()
-	for i := 0; i < 33; i++ {
-		a := make([]int, 8)
-		for j := range a {
-			a[j] = rng.Intn(len(cells))
-		}
-		aa := uint64(0)
-		for _, v := range a {
-			aa <<= 8
-			aa |= cells[v].Bits()
-		}
-		if aa != 0 {
-			aa = aa % uint64(target)
-		}
-		weight := 0.0
-		if aa != 0 {
-			weight = float64((uint64(target) % aa))
-			if weight == 0 {
-				fmt.Println("found", aa)
-				return
+	for {
+		graph := pagerank.NewGraph()
+		for i := 0; i < 33; i++ {
+			a := make([]int, 8)
+			for j := range a {
+				a[j] = rng.Intn(len(cells))
 			}
-			weight = float64(uint64(target)) - weight
-		}
-		for _, v := range a {
-			for _, vv := range a {
-				graph.Link(uint32(v), uint32(vv), weight)
+			aa := uint64(0)
+			for _, v := range a {
+				aa <<= 8
+				aa |= cells[v].Bits()
+			}
+			if aa != 0 {
+				aa = aa % uint64(target)
+			}
+			weight := 0.0
+			if aa != 0 {
+				weight = float64((uint64(target) % aa))
+				if weight == 0 {
+					fmt.Println("found", aa)
+					return
+				}
+				weight = float64(uint64(target)) - weight
+			}
+			for _, v := range a {
+				for _, vv := range a {
+					graph.Link(uint32(v), uint32(vv), weight)
+				}
 			}
 		}
-	}
-	type Node struct {
-		Node uint32
-		Rank float64
-	}
-	ranks := make([]Node, 0, 8)
-	graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
-		ranks = append(ranks, Node{
-			Node: node,
-			Rank: rank,
+		graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
+			cells[node].Rank = rank
 		})
-	})
-	sort.Slice(ranks, func(i, j int) bool {
-		return ranks[i].Rank > ranks[j].Rank
-	})
-	for _, value := range ranks {
-		fmt.Println(value.Node, value.Rank)
+		sort.Slice(cells, func(i, j int) bool {
+			return cells[i].Rank > cells[j].Rank
+		})
+		min := uint64(math.MaxUint64)
+		for i := 0; i < 33; i++ {
+			a := make([]int, 8)
+			for j := range a {
+				sum, r := 0.0, rng.Float64()
+				for k := range cells {
+					sum += cells[k].Rank
+					if sum > r {
+						a[j] = k
+						break
+					}
+				}
+			}
+			aa := uint64(0)
+			for _, v := range a {
+				aa <<= 8
+				aa |= cells[v].Bits()
+			}
+			if aa != 0 {
+				aa = aa % uint64(target)
+			}
+			if aa < min {
+				min = aa
+			}
+			weight := 0.0
+			if aa != 0 {
+				weight = float64((uint64(target) % aa))
+				if weight == 0 {
+					fmt.Println("found", aa)
+					return
+				}
+			}
+		}
+		fmt.Println(min)
+		cells = cells[:32]
+		for i := 0; i < 32; i++ {
+			cells = append(cells, cells[i].Copy())
+		}
 	}
 }
 
