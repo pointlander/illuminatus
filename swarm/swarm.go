@@ -10,6 +10,7 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"runtime"
+	"sort"
 
 	"github.com/alixaxel/pagerank"
 )
@@ -224,18 +225,41 @@ func Swarm(target int) {
 			aa <<= 8
 			aa |= cells[v].Bits()
 		}
-		weight := float64(uint64(target) % aa)
+		if aa != 0 {
+			aa = aa % uint64(target)
+		}
+		weight := 0.0
+		if aa != 0 {
+			weight = float64((uint64(target) % aa))
+			if weight == 0 {
+				fmt.Println("found", aa)
+				return
+			}
+			weight = float64(uint64(target)) - weight
+		}
 		for _, v := range a {
 			for _, vv := range a {
 				graph.Link(uint32(v), uint32(vv), weight)
 			}
 		}
 	}
-	ranks := make(map[uint32]float64)
+	type Node struct {
+		Node uint32
+		Rank float64
+	}
+	ranks := make([]Node, 0, 8)
 	graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
-		ranks[node] = rank
+		ranks = append(ranks, Node{
+			Node: node,
+			Rank: rank,
+		})
 	})
-	fmt.Println(ranks)
+	sort.Slice(ranks, func(i, j int) bool {
+		return ranks[i].Rank > ranks[j].Rank
+	})
+	for _, value := range ranks {
+		fmt.Println(value.Node, value.Rank)
+	}
 }
 
 // Step steps the turing machine
