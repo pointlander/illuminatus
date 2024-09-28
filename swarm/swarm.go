@@ -157,9 +157,10 @@ type Sample struct {
 
 // Cell is a cell
 type Cell struct {
-	Head int
-	Tape []byte
-	Rank float64
+	Head  int
+	Tape  []byte
+	Ranks [8]float64
+	Rank  float64
 }
 
 // NewCell creates a new cell
@@ -217,7 +218,7 @@ func Swarm(target int) {
 	}
 	for {
 		graph := pagerank.NewGraph()
-		for i := 0; i < 256; i++ {
+		for i := 0; i < 1024; i++ {
 			a := make([]int, 8)
 			for j := range a {
 				a[j] = rng.Intn(len(cells))
@@ -239,25 +240,26 @@ func Swarm(target int) {
 				}
 				weight = float64(uint64(target)) - weight
 			}
-			for _, v := range a {
-				for _, vv := range a {
-					graph.Link(uint32(v), uint32(vv), weight)
+			for i, v := range a {
+				for j, vv := range a {
+					graph.Link(uint32(8*v+i), uint32(8*vv+j), weight)
 				}
 			}
 		}
 		graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
-			cells[node].Rank = rank
+			cells[node/8].Ranks[node%8] = rank
+			cells[node/8].Rank += rank
 		})
 		sort.Slice(cells, func(i, j int) bool {
 			return cells[i].Rank > cells[j].Rank
 		})
 		min := uint64(math.MaxUint64)
-		for i := 0; i < 256; i++ {
+		for i := 0; i < 1024; i++ {
 			a := make([]int, 8)
 			for j := range a {
 				sum, r := 0.0, rng.Float64()
 				for k := range cells {
-					sum += cells[k].Rank
+					sum += cells[k].Ranks[j]
 					if sum > r {
 						a[j] = k
 						break
