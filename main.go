@@ -319,13 +319,13 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 				symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
 				copy(input.Data[index:index+Input], symbol)
 			}
+			/*for j := 0; j < input.Rows; j++ {
+				for i := 0; i < input.Cols; i += 2 {
+					input.Data[j*input.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
+					input.Data[j*input.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
+				}
+			}*/
 		}
-		/*for j := 0; j < phi.Rows; j++ {
-			for i := 0; i < phi.Cols; i += 2 {
-				phi.Data[j*phi.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-				phi.Data[j*phi.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-			}
-		}*/
 		a := sample.A.Sample()
 		b := sample.B.Sample()
 		x := a.MulT(inputs[0])
