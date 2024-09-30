@@ -297,7 +297,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 				copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 			}*/
-			if x := jj + a; x < order.Rows {
+			/*if x := jj + a; x < order.Rows {
 				//jj += 3
 				copy(input.Data[jj*Input+Size:jj*Input+Size+Size],
 					order.Data[x*Size:(x+1)*Size])
@@ -307,7 +307,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 					order.Data[(y)*Size:(y+1)*Size])
 			} else {
 				panic("shouldn't be here")
-			}
+			}*/
 			syms := sample.Symbol[i].Sample()
 			index := 0
 			for i := 0; i < len(q); i++ {
