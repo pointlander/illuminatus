@@ -474,6 +474,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 		v /= float64(len(aa))
 		max, index := 0.0, 0
+		maxA, maxB := 0.0, 0.0
 		for i := 1; i < len(aa)-1; i++ {
 			sumA, sumB := 0.0, 0.0
 			countA, countB := 0.0, 0.0
@@ -501,9 +502,10 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			vv := v - (varA + varB)
 			if vv > max {
 				max, index = vv, i
+				maxA, maxB = varA, varB
 			}
 		}
-		fmt.Println(a, max, index, len(aa), aa[0], aa[index], aa[len(aa)-1])
+		fmt.Println(a, max, maxA, maxB, index, len(aa), float64(index)/float64(len(aa)), aa[0], aa[index], aa[len(aa)-1])
 	}
 
 	min, result := math.MaxFloat64, 0
