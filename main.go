@@ -11,6 +11,7 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"runtime"
+	"sort"
 
 	"github.com/pointlander/illuminatus/matrix"
 	"github.com/pointlander/illuminatus/swarm"
@@ -419,6 +420,91 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	sort.Slice(samples, func(i, j int) bool {
 		return samples[i].Variance < samples[j].Variance
 	})*/
+
+	aa := [4][]float64{}
+	sums, count := make([]float64, len(input)), 0.0
+	for sample := range samples {
+		ranks := samples[sample].Ranks[:len(input)]
+		for key, value := range ranks {
+			sums[key] += value
+			if k := input[key]; k == 0 || k == 1 || k == 2 || k == 3 {
+				aa[k] = append(aa[k], value)
+			}
+		}
+		count++
+	}
+	for i := range sums {
+		sums[i] /= count
+	}
+	type Variance struct {
+		Symbol   int
+		Variance float64
+	}
+	variances := make([]Variance, len(input))
+	for i := range variances {
+		variances[i].Symbol = input[i]
+	}
+	for sample := range samples {
+		ranks := samples[sample].Ranks[:len(input)]
+		for key, value := range ranks {
+			diff := sums[key] - value
+			variances[key].Variance += diff * diff
+		}
+	}
+	sort.Slice(variances, func(i, j int) bool {
+		return variances[i].Variance < variances[j].Variance
+	})
+	for _, variance := range variances {
+		fmt.Println(variance.Symbol, variance.Variance)
+	}
+
+	for a, aa := range aa {
+		sort.Slice(aa, func(i, j int) bool {
+			return aa[i] < aa[j]
+		})
+		sum := 0.0
+		for _, value := range aa {
+			sum += value
+		}
+		sum /= float64(len(aa))
+		v := 0.0
+		for _, value := range aa {
+			diff := value - sum
+			v += diff * diff
+		}
+		v /= float64(len(aa))
+		max, index := 0.0, 0
+		for i := 1; i < len(aa)-1; i++ {
+			sumA, sumB := 0.0, 0.0
+			countA, countB := 0.0, 0.0
+			for _, value := range aa[:i] {
+				sumA += value
+				countA++
+			}
+			for _, value := range aa[i:] {
+				sumB += value
+				countB++
+			}
+			sumA /= countA
+			sumB /= countB
+			varA, varB := 0.0, 0.0
+			for _, value := range aa[:i] {
+				diff := value - sumA
+				varA += diff * diff
+			}
+			for _, value := range aa[i:] {
+				diff := value - sumB
+				varB += diff * diff
+			}
+			varA /= countA
+			varB /= countB
+			vv := v - (varA + varB)
+			if vv > max {
+				max, index = vv, i
+			}
+		}
+		fmt.Println(a, max, index, len(aa), aa[0], aa[index], aa[len(aa)-1])
+	}
 
 	min, result := math.MaxFloat64, 0
 	for symbol := 0; symbol < SymbolsCount; symbol++ {
