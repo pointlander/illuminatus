@@ -423,8 +423,19 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 
 	aa := [4][]float64{}
 	sums, count := make([]float64, len(input)), 0.0
+	sum := 0.0
 	for sample := range samples {
-		ranks := samples[sample].Ranks[:len(input)]
+		ranks := samples[sample].Ranks
+		entropy := 0.0
+		for _, value := range ranks {
+			if value == 0 {
+				continue
+			}
+			entropy += value * math.Log2(value)
+		}
+		entropy = -entropy
+		sum += entropy
+		ranks = ranks[:len(input)]
 		for key, value := range ranks {
 			sums[key] += value
 			if k := input[key]; k == 0 || k == 1 || k == 2 || k == 3 {
@@ -432,6 +443,18 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			}
 		}
 		count++
+	}
+	for sample := range samples {
+		ranks := samples[sample].Ranks
+		entropy := 0.0
+		for _, value := range ranks {
+			if value == 0 {
+				continue
+			}
+			entropy += value * math.Log2(value)
+		}
+		entropy = -entropy
+		fmt.Println(entropy / sum)
 	}
 	for i := range sums {
 		sums[i] /= count
