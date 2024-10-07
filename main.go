@@ -11,7 +11,6 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"runtime"
-	"sort"
 
 	"github.com/pointlander/illuminatus/matrix"
 	"github.com/pointlander/illuminatus/swarm"
@@ -421,7 +420,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		return samples[i].Variance < samples[j].Variance
 	})*/
 
-	aa := [4][]float64{}
+	/*aa := [4][]float64{}
 	sums, count := make([]float64, len(input)), 0.0
 	sum := 0.0
 	for sample := range samples {
@@ -529,7 +528,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			}
 		}
 		fmt.Println(a, max, maxA, maxB, index, len(aa), float64(index)/float64(len(aa)), aa[0], aa[index], aa[len(aa)-1])
-	}
+	}*/
 
 	min, result := math.MaxFloat64, 0
 	for symbol := 0; symbol < SymbolsCount; symbol++ {
