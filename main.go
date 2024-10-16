@@ -91,7 +91,7 @@ func (p Puzzle) A() int {
 
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
-	"^abcdabcdabcdabcda",
+	"^abcdabcdabcdabcdabcda",
 	"^abcdabcdabcdabcdab",
 	"^abcdabcdabcdabcdabc",
 	"^abcdabcdabcdabcdabcd",
@@ -183,6 +183,34 @@ func (m Matrix) MulT(n Matrix) Matrix {
 			mm := m.Data[j : j+columns]
 			o.Data = append(o.Data, Dot(mm, nn))
 		}
+	}
+	return o
+}
+
+// Sigmoid computes the sigmoid of a matrix
+func (m Matrix) Sigmoid() Matrix {
+	o := Matrix{
+		Cols: m.Cols,
+		Rows: m.Rows,
+		Data: make([]complex128, 0, m.Cols*m.Rows),
+	}
+	for _, value := range m.Data {
+		o.Data = append(o.Data, complex(1/(1+math.Exp(-real(value))), 1/(1+math.Exp(-imag(value)))))
+	}
+	return o
+}
+
+// TanH computes the tanh of a matrix
+func (m Matrix) TanH() Matrix {
+	o := Matrix{
+		Cols: m.Cols,
+		Rows: m.Rows,
+		Data: make([]complex128, 0, m.Cols*m.Rows),
+	}
+	for _, value := range m.Data {
+		a := complex(math.Exp(real(value)), math.Exp(imag(value)))
+		b := complex(math.Exp(-real(value)), math.Exp(-imag(value)))
+		o.Data = append(o.Data, (a-b)/(a+b))
 	}
 	return o
 }
@@ -328,8 +356,8 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		}
 		a := sample.A.Sample()
 		b := sample.B.Sample()
-		x := a.MulT(inputs[0])
-		y := b.MulT(inputs[1])
+		x := a.MulT(inputs[0]).TanH()
+		y := b.MulT(inputs[1]).TanH()
 		sample.Ranks = PageRank(x, y)
 		done <- true
 	}
