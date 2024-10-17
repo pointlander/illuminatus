@@ -128,18 +128,31 @@ func NewZeroMatrix(cols, rows int) Matrix {
 	}
 }
 
+// Random is a gaussian distribution
+type Random struct {
+	Mean   float32
+	Stddev float32
+}
+
 // RandomMatrix is a random matrix
 type RandomMatrix struct {
 	Cols int
 	Rows int
+	Rand []Random
 	Seed int64
 }
 
 // NewRandomMatrix creates a new gaussian random matrix
 func NewRandomMatrix(cols, rows int, seed int64) RandomMatrix {
+	factor := float32(math.Sqrt(2.0 / float64(cols)))
+	r := make([]Random, cols*rows)
+	for i := range r {
+		r[i].Stddev = factor
+	}
 	return RandomMatrix{
 		Cols: cols,
 		Rows: rows,
+		Rand: r,
 		Seed: seed,
 	}
 }
@@ -147,11 +160,10 @@ func NewRandomMatrix(cols, rows int, seed int64) RandomMatrix {
 // Sample generates a matrix from a gaussian distribution
 func (g RandomMatrix) Sample() Matrix {
 	rng := rand.New(rand.NewSource(g.Seed))
-	factor := math.Sqrt(2.0 / float64(g.Cols))
 	sample := NewMatrix(g.Cols, g.Rows)
-	for i := 0; i < g.Cols*g.Rows; i++ {
-		a := rng.NormFloat64() * factor
-		sample.Data = append(sample.Data, float32(a))
+	for _, v := range g.Rand {
+		a := float32(rng.NormFloat64())*v.Stddev + v.Mean
+		sample.Data = append(sample.Data, a)
 	}
 	return sample
 }
