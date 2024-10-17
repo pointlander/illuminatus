@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/rand"
 	"runtime"
+	"sort"
 
 	"github.com/pointlander/illuminatus/matrix"
 	"github.com/pointlander/illuminatus/swarm"
@@ -143,11 +144,13 @@ type RandomMatrix struct {
 }
 
 // NewRandomMatrix creates a new gaussian random matrix
-func NewRandomMatrix(cols, rows int, seed int64) RandomMatrix {
-	factor := float32(math.Sqrt(2.0 / float64(cols)))
-	r := make([]Random, cols*rows)
-	for i := range r {
-		r[i].Stddev = factor
+func NewRandomMatrix(cols, rows int, seed int64, r ...Random) RandomMatrix {
+	if r == nil {
+		factor := float32(math.Sqrt(2.0 / float64(cols)))
+		r = make([]Random, cols*rows)
+		for i := range r {
+			r[i].Stddev = factor
+		}
 	}
 	return RandomMatrix{
 		Cols: cols,
@@ -599,6 +602,33 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 	}
 	fmt.Println(result)
+
+	{
+		sum, count := make([]float64, len(samples[0].Ranks)), 0.0
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			for i, r := range ranks {
+				sum[i] += r
+				count++
+			}
+		}
+		average := make([]float64, len(sum))
+		for i, r := range sum {
+			average[i] = r / count
+		}
+		for sample := range samples {
+			variance := 0.0
+			ranks := samples[sample].Ranks
+			for i, r := range ranks {
+				diff := average[i] - r
+				variance += diff * diff
+			}
+			samples[sample].Variance = variance
+		}
+		sort.Slice(samples, func(i, j int) bool {
+			return samples[i].Variance < samples[j].Variance
+		})
+	}
 
 	return result
 }
