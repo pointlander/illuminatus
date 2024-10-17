@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"math"
-	"math/cmplx"
 	"math/rand"
 	"runtime"
 
@@ -92,25 +91,25 @@ func (p Puzzle) A() int {
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
 	"^abcdabcdabcdabcdabcda",
-	"^abcdabcdabcdabcdab",
-	"^abcdabcdabcdabcdabc",
-	"^abcdabcdabcdabcdabcd",
+	"^abcdabcdabcdabcdabcdab",
+	"^abcdabcdabcdabcdabcdabc",
+	"^abcdabcdabcdabcdabcdabcd",
 	"^abcddcbaabcddcbaabcddcbaabcd",
 	"^aabbccddaabbccddaabbccd",
 	"^aabbccddaabbccddaabbccdd",
 }
 
-// Matrix is a float64 matrix
+// Matrix is a float32 matrix
 type Matrix struct {
 	Cols int
 	Rows int
-	Data []complex128
+	Data []float32
 }
 
 // NewMatrix creates a new float64 matrix
-func NewMatrix(cols, rows int, data ...complex128) Matrix {
+func NewMatrix(cols, rows int, data ...float32) Matrix {
 	if data == nil {
-		data = make([]complex128, 0, cols*rows)
+		data = make([]float32, 0, cols*rows)
 	}
 	return Matrix{
 		Cols: cols,
@@ -124,7 +123,7 @@ func NewZeroMatrix(cols, rows int) Matrix {
 	return Matrix{
 		Cols: cols,
 		Rows: rows,
-		Data: make([]complex128, cols*rows),
+		Data: make([]float32, cols*rows),
 	}
 }
 
@@ -151,14 +150,13 @@ func (g RandomMatrix) Sample() Matrix {
 	sample := NewMatrix(g.Cols, g.Rows)
 	for i := 0; i < g.Cols*g.Rows; i++ {
 		a := rng.NormFloat64() * factor
-		//b := rng.NormFloat64() * factor
-		sample.Data = append(sample.Data, complex(a, 0))
+		sample.Data = append(sample.Data, float32(a))
 	}
 	return sample
 }
 
 // Dot computes the dot product
-func Dot(x, y []complex128) (z complex128) {
+func Dot(x, y []float32) (z float32) {
 	for i := range x {
 		z += x[i] * y[i]
 	}
@@ -174,7 +172,7 @@ func (m Matrix) MulT(n Matrix) Matrix {
 	o := Matrix{
 		Cols: m.Rows,
 		Rows: n.Rows,
-		Data: make([]complex128, 0, m.Rows*n.Rows),
+		Data: make([]float32, 0, m.Rows*n.Rows),
 	}
 	lenn, lenm := len(n.Data), len(m.Data)
 	for i := 0; i < lenn; i += columns {
@@ -192,10 +190,10 @@ func (m Matrix) Sigmoid() Matrix {
 	o := Matrix{
 		Cols: m.Cols,
 		Rows: m.Rows,
-		Data: make([]complex128, 0, m.Cols*m.Rows),
+		Data: make([]float32, 0, m.Cols*m.Rows),
 	}
 	for _, value := range m.Data {
-		o.Data = append(o.Data, complex(1/(1+math.Exp(-real(value))), 1/(1+math.Exp(-imag(value)))))
+		o.Data = append(o.Data, float32(1/(1+math.Exp(-float64(value)))))
 	}
 	return o
 }
@@ -205,12 +203,12 @@ func (m Matrix) TanH() Matrix {
 	o := Matrix{
 		Cols: m.Cols,
 		Rows: m.Rows,
-		Data: make([]complex128, 0, m.Cols*m.Rows),
+		Data: make([]float32, 0, m.Cols*m.Rows),
 	}
 	for _, value := range m.Data {
-		a := complex(math.Exp(real(value)), math.Exp(imag(value)))
-		b := complex(math.Exp(-real(value)), math.Exp(-imag(value)))
-		o.Data = append(o.Data, (a-b)/(a+b))
+		a := math.Exp(float64(value))
+		b := math.Exp(-float64(value))
+		o.Data = append(o.Data, float32((a-b)/(a+b)))
 	}
 	return o
 }
@@ -220,19 +218,19 @@ func PageRank(x, y Matrix) []float64 {
 	graph := pagerank.NewGraph()
 	for i := 0; i < y.Rows; i++ {
 		yy := y.Data[i*y.Cols : (i+1)*y.Cols]
-		aa := complex(0.0, 0.0)
+		aa := float32(0.0)
 		for _, v := range yy {
 			aa += v * v
 		}
-		aa = cmplx.Sqrt(aa)
+		aa = float32(math.Sqrt(float64(aa)))
 		for j := 0; j < x.Rows; j++ {
 			xx := x.Data[j*x.Cols : (j+1)*x.Cols]
-			bb := complex(0.0, 0.0)
+			bb := float32(0.0)
 			for _, v := range xx {
 				bb += v * v
 			}
-			bb = cmplx.Sqrt(bb)
-			d := cmplx.Abs(Dot(yy, xx) / (aa * bb))
+			bb = float32(math.Sqrt(float64(bb)))
+			d := math.Abs(float64(Dot(yy, xx) / (aa * bb)))
 			graph.Link(uint32(i), uint32(j), d)
 		}
 	}
