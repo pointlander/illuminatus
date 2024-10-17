@@ -236,7 +236,7 @@ func PageRank(x, y Matrix) []float64 {
 		}
 	}
 	ranks := make([]float64, y.Rows)
-	graph.Rank(1.0, 1e-9, func(node uint32, rank float64) {
+	graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
 		ranks[node] = rank
 	})
 	return ranks
