@@ -14,6 +14,7 @@ import (
 	"github.com/pointlander/illuminatus/matrix"
 	"github.com/pointlander/illuminatus/swarm"
 	"github.com/pointlander/illuminatus/turing"
+	"github.com/pointlander/illuminatus/vector"
 
 	"github.com/alixaxel/pagerank"
 )
@@ -230,7 +231,7 @@ func PageRank(x, y Matrix) []float64 {
 				bb += v * v
 			}
 			bb = float32(math.Sqrt(float64(bb)))
-			d := math.Abs(float64(Dot(yy, xx) / (aa * bb)))
+			d := math.Abs(float64(vector.Dot(yy, xx) / (aa * bb)))
 			graph.Link(uint32(i), uint32(j), d)
 		}
 	}
