@@ -268,7 +268,7 @@ type Sample struct {
 }
 
 // Search searches for a symbol
-func (puzzle Puzzle) Search(seed int64) []Sample {
+func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
 	length := len(puzzle.Q()) + 1
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
@@ -277,7 +277,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		if seed == 0 {
 			seed = 1
 		}
-		projections[i] = NewRandomMatrix(Input, Input, seed)
+		projections[i] = NewRandomMatrix(Input, Input, seed, r...)
 	}
 	index := 0
 	samples := make([]Sample, Samples)
@@ -408,227 +408,264 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	)
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
-	seed = rng.Int63()
-	if seed == 0 {
-		seed = 1
-	}
-	samples := puzzle.Search(seed)
-	input := puzzle.Q()
-	/*projections := make([]RandomMatrix, MetaScale)
-	for i := range projections {
-		seed := rng.Int63()
+	var r []Random
+	min, result := math.MaxFloat64, 0
+	for e := 0; e < 3; e++ {
+		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
-		projections[i] = NewRandomMatrix(len(input)+1, len(input)+1, seed)
-	}
-	results := make([][]float64, 0, 8)
-	for i := 0; i < MetaScale; i++ {
-		for j := i + 1; j < MetaScale; j++ {
-			ranks := NewMatrix(len(input)+1, len(samples))
-			for sample := range samples {
-				for _, rank := range samples[sample].Ranks {
-					ranks.Data = append(ranks.Data, complex(rank, 0))
+		samples := puzzle.Search(seed, r)
+		input := puzzle.Q()
+		/*projections := make([]RandomMatrix, MetaScale)
+		for i := range projections {
+			seed := rng.Int63()
+			if seed == 0 {
+				seed = 1
+			}
+			projections[i] = NewRandomMatrix(len(input)+1, len(input)+1, seed)
+		}
+		results := make([][]float64, 0, 8)
+		for i := 0; i < MetaScale; i++ {
+			for j := i + 1; j < MetaScale; j++ {
+				ranks := NewMatrix(len(input)+1, len(samples))
+				for sample := range samples {
+					for _, rank := range samples[sample].Ranks {
+						ranks.Data = append(ranks.Data, complex(rank, 0))
+					}
 				}
-			}
-			a := projections[i].Sample()
-			b := projections[j].Sample()
-			x := a.MulT(ranks)
-			y := b.MulT(ranks)
-			result := PageRank(x, y)
-			results = append(results, result)
-		}
-	}
-	averages := make([]float64, Samples)
-	for _, result := range results {
-		for i := range result {
-			averages[i] += result[i]
-		}
-	}
-	for i := range averages {
-		averages[i] /= float64(len(results))
-	}
-	variances := make([]float64, Samples)
-	for _, result := range results {
-		for i := range result {
-			diff := averages[i] - result[i]
-			variances[i] += diff * diff
-		}
-	}
-	for i := range variances {
-		samples[i].Variance = variances[i]
-	}
-	sort.Slice(samples, func(i, j int) bool {
-		return samples[i].Variance < samples[j].Variance
-	})*/
-
-	/*aa := [4][]float64{}
-	sums, count := make([]float64, len(input)), 0.0
-	sum := 0.0
-	for sample := range samples {
-		ranks := samples[sample].Ranks
-		entropy := 0.0
-		for _, value := range ranks {
-			if value == 0 {
-				continue
-			}
-			entropy += value * math.Log2(value)
-		}
-		entropy = -entropy
-		sum += entropy
-		ranks = ranks[:len(input)]
-		for key, value := range ranks {
-			sums[key] += value
-			if k := input[key]; k == 0 || k == 1 || k == 2 || k == 3 {
-				aa[k] = append(aa[k], value)
+				a := projections[i].Sample()
+				b := projections[j].Sample()
+				x := a.MulT(ranks)
+				y := b.MulT(ranks)
+				result := PageRank(x, y)
+				results = append(results, result)
 			}
 		}
-		count++
-	}
-	for sample := range samples {
-		ranks := samples[sample].Ranks
-		entropy := 0.0
-		for _, value := range ranks {
-			if value == 0 {
-				continue
-			}
-			entropy += value * math.Log2(value)
-		}
-		entropy = -entropy
-		fmt.Println(entropy / sum)
-	}
-	for i := range sums {
-		sums[i] /= count
-	}
-	type Variance struct {
-		Symbol   int
-		Variance float64
-	}
-	variances := make([]Variance, len(input))
-	for i := range variances {
-		variances[i].Symbol = input[i]
-	}
-	for sample := range samples {
-		ranks := samples[sample].Ranks[:len(input)]
-		for key, value := range ranks {
-			diff := sums[key] - value
-			variances[key].Variance += diff * diff
-		}
-	}
-	sort.Slice(variances, func(i, j int) bool {
-		return variances[i].Variance < variances[j].Variance
-	})
-	for _, variance := range variances {
-		fmt.Println(variance.Symbol, variance.Variance)
-	}
-
-	for a, aa := range aa {
-		sort.Slice(aa, func(i, j int) bool {
-			return aa[i] < aa[j]
-		})
-		sum := 0.0
-		for _, value := range aa {
-			sum += value
-		}
-		sum /= float64(len(aa))
-		v := 0.0
-		for _, value := range aa {
-			diff := value - sum
-			v += diff * diff
-		}
-		v /= float64(len(aa))
-		max, index := 0.0, 0
-		maxA, maxB := 0.0, 0.0
-		for i := 1; i < len(aa)-1; i++ {
-			sumA, sumB := 0.0, 0.0
-			countA, countB := 0.0, 0.0
-			for _, value := range aa[:i] {
-				sumA += value
-				countA++
-			}
-			for _, value := range aa[i:] {
-				sumB += value
-				countB++
-			}
-			sumA /= countA
-			sumB /= countB
-			varA, varB := 0.0, 0.0
-			for _, value := range aa[:i] {
-				diff := value - sumA
-				varA += diff * diff
-			}
-			for _, value := range aa[i:] {
-				diff := value - sumB
-				varB += diff * diff
-			}
-			varA /= countA
-			varB /= countB
-			vv := v - (varA + varB)
-			if vv > max {
-				max, index = vv, i
-				maxA, maxB = varA, varB
+		averages := make([]float64, Samples)
+		for _, result := range results {
+			for i := range result {
+				averages[i] += result[i]
 			}
 		}
-		fmt.Println(a, max, maxA, maxB, index, len(aa), float64(index)/float64(len(aa)), aa[0], aa[index], aa[len(aa)-1])
-	}*/
-
-	min, result := math.MaxFloat64, 0
-	for symbol := 0; symbol < SymbolsCount; symbol++ {
-		indexes := make([]int, 0, 8)
-		for key, value := range input {
-			if value == symbol {
-				indexes = append(indexes, key)
+		for i := range averages {
+			averages[i] /= float64(len(results))
+		}
+		variances := make([]float64, Samples)
+		for _, result := range results {
+			for i := range result {
+				diff := averages[i] - result[i]
+				variances[i] += diff * diff
 			}
 		}
-		sum, count := 0.0, 0.0
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			for _, index := range indexes {
-				sum += ranks[index]
-				count++
-			}
-		}
-		average := sum / count
-		variance := 0.0
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			for _, index := range indexes {
-				diff := average - ranks[index]
-				variance += diff * diff
-			}
-		}
-		if variance < min {
-			min, result = variance, symbol
-		}
-	}
-	fmt.Println(result)
-
-	{
-		sum, count := make([]float64, len(samples[0].Ranks)), 0.0
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			for i, r := range ranks {
-				sum[i] += r
-				count++
-			}
-		}
-		average := make([]float64, len(sum))
-		for i, r := range sum {
-			average[i] = r / count
-		}
-		for sample := range samples {
-			variance := 0.0
-			ranks := samples[sample].Ranks
-			for i, r := range ranks {
-				diff := average[i] - r
-				variance += diff * diff
-			}
-			samples[sample].Variance = variance
+		for i := range variances {
+			samples[i].Variance = variances[i]
 		}
 		sort.Slice(samples, func(i, j int) bool {
 			return samples[i].Variance < samples[j].Variance
+		})*/
+
+		/*aa := [4][]float64{}
+		sums, count := make([]float64, len(input)), 0.0
+		sum := 0.0
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			entropy := 0.0
+			for _, value := range ranks {
+				if value == 0 {
+					continue
+				}
+				entropy += value * math.Log2(value)
+			}
+			entropy = -entropy
+			sum += entropy
+			ranks = ranks[:len(input)]
+			for key, value := range ranks {
+				sums[key] += value
+				if k := input[key]; k == 0 || k == 1 || k == 2 || k == 3 {
+					aa[k] = append(aa[k], value)
+				}
+			}
+			count++
+		}
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			entropy := 0.0
+			for _, value := range ranks {
+				if value == 0 {
+					continue
+				}
+				entropy += value * math.Log2(value)
+			}
+			entropy = -entropy
+			fmt.Println(entropy / sum)
+		}
+		for i := range sums {
+			sums[i] /= count
+		}
+		type Variance struct {
+			Symbol   int
+			Variance float64
+		}
+		variances := make([]Variance, len(input))
+		for i := range variances {
+			variances[i].Symbol = input[i]
+		}
+		for sample := range samples {
+			ranks := samples[sample].Ranks[:len(input)]
+			for key, value := range ranks {
+				diff := sums[key] - value
+				variances[key].Variance += diff * diff
+			}
+		}
+		sort.Slice(variances, func(i, j int) bool {
+			return variances[i].Variance < variances[j].Variance
 		})
+		for _, variance := range variances {
+			fmt.Println(variance.Symbol, variance.Variance)
+		}
+
+		for a, aa := range aa {
+			sort.Slice(aa, func(i, j int) bool {
+				return aa[i] < aa[j]
+			})
+			sum := 0.0
+			for _, value := range aa {
+				sum += value
+			}
+			sum /= float64(len(aa))
+			v := 0.0
+			for _, value := range aa {
+				diff := value - sum
+				v += diff * diff
+			}
+			v /= float64(len(aa))
+			max, index := 0.0, 0
+			maxA, maxB := 0.0, 0.0
+			for i := 1; i < len(aa)-1; i++ {
+				sumA, sumB := 0.0, 0.0
+				countA, countB := 0.0, 0.0
+				for _, value := range aa[:i] {
+					sumA += value
+					countA++
+				}
+				for _, value := range aa[i:] {
+					sumB += value
+					countB++
+				}
+				sumA /= countA
+				sumB /= countB
+				varA, varB := 0.0, 0.0
+				for _, value := range aa[:i] {
+					diff := value - sumA
+					varA += diff * diff
+				}
+				for _, value := range aa[i:] {
+					diff := value - sumB
+					varB += diff * diff
+				}
+				varA /= countA
+				varB /= countB
+				vv := v - (varA + varB)
+				if vv > max {
+					max, index = vv, i
+					maxA, maxB = varA, varB
+				}
+			}
+			fmt.Println(a, max, maxA, maxB, index, len(aa), float64(index)/float64(len(aa)), aa[0], aa[index], aa[len(aa)-1])
+		}*/
+
+		for symbol := 0; symbol < SymbolsCount; symbol++ {
+			indexes := make([]int, 0, 8)
+			for key, value := range input {
+				if value == symbol {
+					indexes = append(indexes, key)
+				}
+			}
+			sum, count := 0.0, 0.0
+			for sample := range samples {
+				ranks := samples[sample].Ranks
+				for _, index := range indexes {
+					sum += ranks[index]
+					count++
+				}
+			}
+			average := sum / count
+			variance := 0.0
+			for sample := range samples {
+				ranks := samples[sample].Ranks
+				for _, index := range indexes {
+					diff := average - ranks[index]
+					variance += diff * diff
+				}
+			}
+			if variance < min {
+				min, result = variance, symbol
+			}
+		}
+
+		{
+			sum, count := make([]float64, len(samples[0].Ranks)), 0.0
+			for sample := range samples {
+				ranks := samples[sample].Ranks
+				for i, r := range ranks {
+					sum[i] += r
+					count++
+				}
+			}
+			average := make([]float64, len(sum))
+			for i, r := range sum {
+				average[i] = r / count
+			}
+			for sample := range samples {
+				variance := 0.0
+				ranks := samples[sample].Ranks
+				for i, r := range ranks {
+					diff := average[i] - r
+					variance += diff * diff
+				}
+				samples[sample].Variance = variance
+			}
+			sort.Slice(samples, func(i, j int) bool {
+				return samples[i].Variance < samples[j].Variance
+			})
+			d := NewRandomMatrix(Input, Input, 1)
+			for i := range d.Rand {
+				d.Rand[i].Stddev = 0
+			}
+			for sample := range samples[:33] {
+				a := samples[sample].A.Sample()
+				for i, v := range a.Data {
+					d.Rand[i].Mean += v
+				}
+				b := samples[sample].B.Sample()
+				for i, v := range b.Data {
+					d.Rand[i].Mean += v
+				}
+			}
+			for i := range d.Rand {
+				d.Rand[i].Mean /= 2 * 33
+			}
+			for sample := range samples[:33] {
+				a := samples[sample].A.Sample()
+				for i, v := range a.Data {
+					diff := d.Rand[i].Mean - v
+					d.Rand[i].Stddev += diff * diff
+				}
+				b := samples[sample].B.Sample()
+				for i, v := range b.Data {
+					diff := d.Rand[i].Mean - v
+					d.Rand[i].Stddev += diff * diff
+				}
+			}
+			for i := range d.Rand {
+				d.Rand[i].Stddev /= 2 * 33
+				d.Rand[i].Stddev = float32(math.Sqrt(float64(d.Rand[i].Stddev)))
+			}
+			r = d.Rand
+		}
 	}
+	fmt.Println(result)
 
 	return result
 }
