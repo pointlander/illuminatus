@@ -26,7 +26,7 @@ const (
 	// Size is the link size
 	Size = 16
 	// Input is the network input size
-	Input = Size + 2*Size
+	Input = Symbols + 1 //Size + 2*Size
 	// S is the scaling factor for the softmax
 	S = 1.0 - 1e-300
 	// Scale is the scale of the search
@@ -330,7 +330,7 @@ func (puzzle Puzzle) Search(seed int64, r1, r2 []Random) []Sample {
 		inputs[1] = NewZeroMatrix(Input, length)
 		for i := range inputs {
 			input := &inputs[i]
-			order := sample.Order[i].Sample()
+			/*order := sample.Order[i].Sample()
 			a, b := 0, 1
 			jj := input.Rows - 1
 			for j := 0; j < jj; j++ {
@@ -340,7 +340,7 @@ func (puzzle Puzzle) Search(seed int64, r1, r2 []Random) []Sample {
 				copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
 					order.Data[(y)*Size:(y+1)*Size])
 				a, b = b, a
-			}
+			}*/
 			/*for j := jj; j < jj+3; j++ {
 				x, y := (jj-1+b)%phi.Rows, (jj-1+a)%phi.Rows
 				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
@@ -359,23 +359,21 @@ func (puzzle Puzzle) Search(seed int64, r1, r2 []Random) []Sample {
 			} else {
 				panic("shouldn't be here")
 			}*/
-			syms := sample.Symbol[i].Sample()
+			//syms := sample.Symbol[i].Sample()
 			index := 0
 			for i := 0; i < len(q); i++ {
-				symbol := syms.Data[Size*q[i] : Size*(q[i]+1)]
-				copy(input.Data[index:index+Input], symbol)
+				input.Data[index+q[i]] = 1
 				index += Input
 			}
 			{
-				symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
-				copy(input.Data[index:index+Input], symbol)
+				input.Data[index+To['$']] = 1
 			}
-			/*for j := 0; j < input.Rows; j++ {
+			for j := 0; j < input.Rows; j++ {
 				for i := 0; i < input.Cols; i += 2 {
-					input.Data[j*input.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-					input.Data[j*input.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
+					input.Data[j*input.Cols+i] += float32(math.Sin(float64(j) / math.Pow(10000, 2*float64(i)/Size)))
+					input.Data[j*input.Cols+i+1] += float32(math.Cos(float64(j) / math.Pow(10000, 2*float64(i)/Size)))
 				}
-			}*/
+			}
 		}
 		a := sample.A.Sample()
 		b := sample.B.Sample()
@@ -421,7 +419,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	fmt.Println(string(puzzle))
 	var r1, r2 []Random
 	min, result := math.MaxFloat64, 0
-	for e := 0; e < 256; e++ {
+	for e := 0; e < 16; e++ {
 		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
