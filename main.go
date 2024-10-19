@@ -297,16 +297,16 @@ func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
 			symbol := NewRandomMatrix(Size, Symbols, seed)
 			samples[index].Order[0] = order
 			samples[index].Symbol[0] = symbol
-			seed = rng.Int63()
+			/*seed = rng.Int63()
 			if seed == 0 {
 				seed = 1
-			}
-			order = NewRandomMatrix(Size, length, seed)
-			seed = rng.Int63()
+			}*/
+			order = NewRandomMatrix(Size, length, 1)
+			/*seed = rng.Int63()
 			if seed == 0 {
 				seed = 1
-			}
-			symbol = NewRandomMatrix(Size, Symbols, seed)
+			}*/
+			symbol = NewRandomMatrix(Size, Symbols, 2)
 			samples[index].Order[1] = order
 			samples[index].Symbol[1] = symbol
 			index++
@@ -405,12 +405,14 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		MetaScale = 7
 		// Samples is the number of samplee
 		MetaSamples = MetaScale * (MetaScale - 1) / 2
+		// Cutoff is the cutoff
+		Cutoff = 13
 	)
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
 	var r []Random
 	min, result := math.MaxFloat64, 0
-	for e := 0; e < 3; e++ {
+	for e := 0; e < 8; e++ {
 		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
@@ -629,11 +631,12 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			sort.Slice(samples, func(i, j int) bool {
 				return samples[i].Variance < samples[j].Variance
 			})
+			//fmt.Println(samples[0].Variance)
 			d := NewRandomMatrix(Input, Input, 1)
 			for i := range d.Rand {
 				d.Rand[i].Stddev = 0
 			}
-			for sample := range samples[:33] {
+			for sample := range samples[:Cutoff] {
 				a := samples[sample].A.Sample()
 				for i, v := range a.Data {
 					d.Rand[i].Mean += v
@@ -644,9 +647,9 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 				}
 			}
 			for i := range d.Rand {
-				d.Rand[i].Mean /= 2 * 33
+				d.Rand[i].Mean /= 2 * Cutoff
 			}
-			for sample := range samples[:33] {
+			for sample := range samples[:Cutoff] {
 				a := samples[sample].A.Sample()
 				for i, v := range a.Data {
 					diff := d.Rand[i].Mean - v
@@ -659,7 +662,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 				}
 			}
 			for i := range d.Rand {
-				d.Rand[i].Stddev /= 2 * 33
+				d.Rand[i].Stddev /= 2 * Cutoff
 				d.Rand[i].Stddev = float32(math.Sqrt(float64(d.Rand[i].Stddev)))
 			}
 			r = d.Rand
