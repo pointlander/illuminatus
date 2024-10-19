@@ -34,7 +34,7 @@ const (
 	// SymbolsCount is the number of unique symbols in a puzzle
 	SymbolsCount = 4
 	// Samples is the number of samplee
-	Samples = Scale * (Scale - 1) / 2
+	Samples = Scale * Scale
 )
 
 var (
@@ -268,23 +268,32 @@ type Sample struct {
 }
 
 // Search searches for a symbol
-func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
+func (puzzle Puzzle) Search(seed int64, r1, r2 []Random) []Sample {
 	length := len(puzzle.Q()) + 1
 	rng := rand.New(rand.NewSource(seed))
-	projections := make([]RandomMatrix, Scale)
-	for i := range projections {
+	projections1 := make([]RandomMatrix, Scale)
+	for i := range projections1 {
 		seed := rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
-		projections[i] = NewRandomMatrix(Input, Input, seed, r...)
+		projections1[i] = NewRandomMatrix(Input, Input, seed, r1...)
+	}
+	projections2 := make([]RandomMatrix, Scale)
+	for i := range projections2 {
+		seed := rng.Int63()
+		if seed == 0 {
+			seed = 1
+		}
+		projections2[i] = NewRandomMatrix(Input, Input, seed, r2...)
 	}
 	index := 0
 	samples := make([]Sample, Samples)
 	for i := 0; i < Scale; i++ {
-		for j := i + 1; j < Scale; j++ {
-			samples[index].A = projections[i]
-			samples[index].B = projections[j]
+		for j := 0; j < Scale; j++ {
+			samples[index].A =
+				projections1[i]
+			samples[index].B = projections2[j]
 			seed := rng.Int63()
 			if seed == 0 {
 				seed = 1
@@ -410,14 +419,14 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	)
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
-	var r []Random
+	var r1, r2 []Random
 	min, result := math.MaxFloat64, 0
-	for e := 0; e < 8; e++ {
+	for e := 0; e < 256; e++ {
 		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
-		samples := puzzle.Search(seed, r)
+		samples := puzzle.Search(seed, r1, r2)
 		input := puzzle.Q()
 		/*projections := make([]RandomMatrix, MetaScale)
 		for i := range projections {
@@ -631,7 +640,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			sort.Slice(samples, func(i, j int) bool {
 				return samples[i].Variance < samples[j].Variance
 			})
-			//fmt.Println(samples[0].Variance)
+			fmt.Println(samples[0].Variance)
 			d := NewRandomMatrix(Input, Input, 1)
 			for i := range d.Rand {
 				d.Rand[i].Stddev = 0
@@ -641,13 +650,9 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 				for i, v := range a.Data {
 					d.Rand[i].Mean += v
 				}
-				b := samples[sample].B.Sample()
-				for i, v := range b.Data {
-					d.Rand[i].Mean += v
-				}
 			}
 			for i := range d.Rand {
-				d.Rand[i].Mean /= 2 * Cutoff
+				d.Rand[i].Mean /= Cutoff
 			}
 			for sample := range samples[:Cutoff] {
 				a := samples[sample].A.Sample()
@@ -655,6 +660,27 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 					diff := d.Rand[i].Mean - v
 					d.Rand[i].Stddev += diff * diff
 				}
+			}
+			for i := range d.Rand {
+				d.Rand[i].Stddev /= Cutoff
+				d.Rand[i].Stddev = float32(math.Sqrt(float64(d.Rand[i].Stddev)))
+			}
+			r1 = d.Rand
+
+			d = NewRandomMatrix(Input, Input, 1)
+			for i := range d.Rand {
+				d.Rand[i].Stddev = 0
+			}
+			for sample := range samples[:Cutoff] {
+				b := samples[sample].B.Sample()
+				for i, v := range b.Data {
+					d.Rand[i].Mean += v
+				}
+			}
+			for i := range d.Rand {
+				d.Rand[i].Mean /= Cutoff
+			}
+			for sample := range samples[:Cutoff] {
 				b := samples[sample].B.Sample()
 				for i, v := range b.Data {
 					diff := d.Rand[i].Mean - v
@@ -662,10 +688,10 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 				}
 			}
 			for i := range d.Rand {
-				d.Rand[i].Stddev /= 2 * Cutoff
+				d.Rand[i].Stddev /= Cutoff
 				d.Rand[i].Stddev = float32(math.Sqrt(float64(d.Rand[i].Stddev)))
 			}
-			r = d.Rand
+			r2 = d.Rand
 		}
 	}
 	fmt.Println(result)
