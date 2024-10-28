@@ -10,7 +10,6 @@ import (
 	"math"
 	"math/rand"
 	"runtime"
-	"sort"
 
 	"github.com/pointlander/illuminatus/matrix"
 	"github.com/pointlander/illuminatus/swarm"
@@ -93,9 +92,9 @@ func (p Puzzle) A() int {
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
 	"^abcdabcdabcdabcdabcda",
-	"^abcdabcdabcdabcdabcdab",
-	"^abcdabcdabcdabcdabcdabc",
-	"^abcdabcdabcdabcdabcdabcd",
+	"^abcdabcdabcdabcdabcdabcdab",
+	"^abcdabcdabcdabcdabcdabcdabc",
+	"^abcdabcdabcdabcdabcdabcdabcd",
 	"^abcddcbaabcddcbaabcddcbaabcd",
 	"^aabbccddaabbccddaabbccd",
 	"^aabbccddaabbccddaabbccdd",
@@ -268,7 +267,7 @@ type Sample struct {
 }
 
 // Search searches for a symbol
-func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
+func (puzzle Puzzle) Search(seed int64) []Sample {
 	length := len(puzzle.Q()) + 1
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
@@ -277,7 +276,7 @@ func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
 		if seed == 0 {
 			seed = 1
 		}
-		projections[i] = NewRandomMatrix(Input, Input, seed, r...)
+		projections[i] = NewRandomMatrix(Input, Input, seed)
 	}
 	index := 0
 	samples := make([]Sample, Samples)
@@ -297,16 +296,16 @@ func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
 			symbol := NewRandomMatrix(Size, Symbols, seed)
 			samples[index].Order[0] = order
 			samples[index].Symbol[0] = symbol
-			/*seed = rng.Int63()
+			seed = rng.Int63()
 			if seed == 0 {
 				seed = 1
-			}*/
-			order = NewRandomMatrix(Size, length, 1)
-			/*seed = rng.Int63()
+			}
+			order = NewRandomMatrix(Size, length, seed)
+			seed = rng.Int63()
 			if seed == 0 {
 				seed = 1
-			}*/
-			symbol = NewRandomMatrix(Size, Symbols, 2)
+			}
+			symbol = NewRandomMatrix(Size, Symbols, seed)
 			samples[index].Order[1] = order
 			samples[index].Symbol[1] = symbol
 			index++
@@ -370,8 +369,8 @@ func (puzzle Puzzle) Search(seed int64, r []Random) []Sample {
 		}
 		a := sample.A.Sample()
 		b := sample.B.Sample()
-		x := a.MulT(inputs[0]).TanH()
-		y := b.MulT(inputs[1]).TanH()
+		x := a.MulT(inputs[0])
+		y := b.MulT(inputs[1])
 		sample.Ranks = PageRank(x, y)
 		done <- true
 	}
@@ -410,14 +409,14 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	)
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
-	var r []Random
+	//var r []Random
 	min, result := math.MaxFloat64, 0
 	for e := 0; e < 8; e++ {
 		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
 		}
-		samples := puzzle.Search(seed, r)
+		samples := puzzle.Search(seed)
 		input := puzzle.Q()
 		/*projections := make([]RandomMatrix, MetaScale)
 		for i := range projections {
@@ -606,7 +605,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			}
 		}
 
-		{
+		/*{
 			sum, count := make([]float64, len(samples[0].Ranks)), 0.0
 			for sample := range samples {
 				ranks := samples[sample].Ranks
@@ -666,7 +665,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 				d.Rand[i].Stddev = float32(math.Sqrt(float64(d.Rand[i].Stddev)))
 			}
 			r = d.Rand
-		}
+		}*/
 	}
 	fmt.Println(result)
 
