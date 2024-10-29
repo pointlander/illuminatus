@@ -331,24 +331,6 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 					order.Data[(y)*Size:(y+1)*Size])
 				a, b = b, a
 			}
-			/*for j := jj; j < jj+3; j++ {
-				x, y := (jj-1+b)%phi.Rows, (jj-1+a)%phi.Rows
-				copy(phi.Data[j*Input+Size:j*Input+Size+Size],
-					order.Data[x*Size:(x+1)*Size])
-				copy(phi.Data[j*Input+Size+Size:j*Input+Size+2*Size],
-					order.Data[(y)*Size:(y+1)*Size])
-			}*/
-			/*if x := jj + a; x < order.Rows {
-				//jj += 3
-				copy(input.Data[jj*Input+Size:jj*Input+Size+Size],
-					order.Data[x*Size:(x+1)*Size])
-			} else if y := jj + b; y < order.Rows {
-				//jj += 3
-				copy(input.Data[jj*Input+Size+Size:jj*Input+Size+2*Size],
-					order.Data[(y)*Size:(y+1)*Size])
-			} else {
-				panic("shouldn't be here")
-			}*/
 			syms := sample.Symbol[i].Sample()
 			index := 0
 			for i := 0; i < len(q); i++ {
@@ -399,17 +381,8 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 
 // Illuminatus
 func (puzzle Puzzle) Illuminatus(seed int64) int {
-	const (
-		// Scale is the scale of the search
-		MetaScale = 7
-		// Samples is the number of samplee
-		MetaSamples = MetaScale * (MetaScale - 1) / 2
-		// Cutoff is the cutoff
-		Cutoff = 13
-	)
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
-	//var r []Random
 	min, result := math.MaxFloat64, 0
 	for e := 0; e < 8; e++ {
 		seed = rng.Int63()
@@ -418,163 +391,6 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 		samples := puzzle.Search(seed)
 		input := puzzle.Q()
-		/*projections := make([]RandomMatrix, MetaScale)
-		for i := range projections {
-			seed := rng.Int63()
-			if seed == 0 {
-				seed = 1
-			}
-			projections[i] = NewRandomMatrix(len(input)+1, len(input)+1, seed)
-		}
-		results := make([][]float64, 0, 8)
-		for i := 0; i < MetaScale; i++ {
-			for j := i + 1; j < MetaScale; j++ {
-				ranks := NewMatrix(len(input)+1, len(samples))
-				for sample := range samples {
-					for _, rank := range samples[sample].Ranks {
-						ranks.Data = append(ranks.Data, complex(rank, 0))
-					}
-				}
-				a := projections[i].Sample()
-				b := projections[j].Sample()
-				x := a.MulT(ranks)
-				y := b.MulT(ranks)
-				result := PageRank(x, y)
-				results = append(results, result)
-			}
-		}
-		averages := make([]float64, Samples)
-		for _, result := range results {
-			for i := range result {
-				averages[i] += result[i]
-			}
-		}
-		for i := range averages {
-			averages[i] /= float64(len(results))
-		}
-		variances := make([]float64, Samples)
-		for _, result := range results {
-			for i := range result {
-				diff := averages[i] - result[i]
-				variances[i] += diff * diff
-			}
-		}
-		for i := range variances {
-			samples[i].Variance = variances[i]
-		}
-		sort.Slice(samples, func(i, j int) bool {
-			return samples[i].Variance < samples[j].Variance
-		})*/
-
-		/*aa := [4][]float64{}
-		sums, count := make([]float64, len(input)), 0.0
-		sum := 0.0
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			entropy := 0.0
-			for _, value := range ranks {
-				if value == 0 {
-					continue
-				}
-				entropy += value * math.Log2(value)
-			}
-			entropy = -entropy
-			sum += entropy
-			ranks = ranks[:len(input)]
-			for key, value := range ranks {
-				sums[key] += value
-				if k := input[key]; k == 0 || k == 1 || k == 2 || k == 3 {
-					aa[k] = append(aa[k], value)
-				}
-			}
-			count++
-		}
-		for sample := range samples {
-			ranks := samples[sample].Ranks
-			entropy := 0.0
-			for _, value := range ranks {
-				if value == 0 {
-					continue
-				}
-				entropy += value * math.Log2(value)
-			}
-			entropy = -entropy
-			fmt.Println(entropy / sum)
-		}
-		for i := range sums {
-			sums[i] /= count
-		}
-		type Variance struct {
-			Symbol   int
-			Variance float64
-		}
-		variances := make([]Variance, len(input))
-		for i := range variances {
-			variances[i].Symbol = input[i]
-		}
-		for sample := range samples {
-			ranks := samples[sample].Ranks[:len(input)]
-			for key, value := range ranks {
-				diff := sums[key] - value
-				variances[key].Variance += diff * diff
-			}
-		}
-		sort.Slice(variances, func(i, j int) bool {
-			return variances[i].Variance < variances[j].Variance
-		})
-		for _, variance := range variances {
-			fmt.Println(variance.Symbol, variance.Variance)
-		}
-
-		for a, aa := range aa {
-			sort.Slice(aa, func(i, j int) bool {
-				return aa[i] < aa[j]
-			})
-			sum := 0.0
-			for _, value := range aa {
-				sum += value
-			}
-			sum /= float64(len(aa))
-			v := 0.0
-			for _, value := range aa {
-				diff := value - sum
-				v += diff * diff
-			}
-			v /= float64(len(aa))
-			max, index := 0.0, 0
-			maxA, maxB := 0.0, 0.0
-			for i := 1; i < len(aa)-1; i++ {
-				sumA, sumB := 0.0, 0.0
-				countA, countB := 0.0, 0.0
-				for _, value := range aa[:i] {
-					sumA += value
-					countA++
-				}
-				for _, value := range aa[i:] {
-					sumB += value
-					countB++
-				}
-				sumA /= countA
-				sumB /= countB
-				varA, varB := 0.0, 0.0
-				for _, value := range aa[:i] {
-					diff := value - sumA
-					varA += diff * diff
-				}
-				for _, value := range aa[i:] {
-					diff := value - sumB
-					varB += diff * diff
-				}
-				varA /= countA
-				varB /= countB
-				vv := v - (varA + varB)
-				if vv > max {
-					max, index = vv, i
-					maxA, maxB = varA, varB
-				}
-			}
-			fmt.Println(a, max, maxA, maxB, index, len(aa), float64(index)/float64(len(aa)), aa[0], aa[index], aa[len(aa)-1])
-		}*/
 
 		for symbol := 0; symbol < SymbolsCount; symbol++ {
 			indexes := make([]int, 0, 8)
@@ -604,68 +420,6 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 				min, result = variance, symbol
 			}
 		}
-
-		/*{
-			sum, count := make([]float64, len(samples[0].Ranks)), 0.0
-			for sample := range samples {
-				ranks := samples[sample].Ranks
-				for i, r := range ranks {
-					sum[i] += r
-					count++
-				}
-			}
-			average := make([]float64, len(sum))
-			for i, r := range sum {
-				average[i] = r / count
-			}
-			for sample := range samples {
-				variance := 0.0
-				ranks := samples[sample].Ranks
-				for i, r := range ranks {
-					diff := average[i] - r
-					variance += diff * diff
-				}
-				samples[sample].Variance = variance
-			}
-			sort.Slice(samples, func(i, j int) bool {
-				return samples[i].Variance < samples[j].Variance
-			})
-			//fmt.Println(samples[0].Variance)
-			d := NewRandomMatrix(Input, Input, 1)
-			for i := range d.Rand {
-				d.Rand[i].Stddev = 0
-			}
-			for sample := range samples[:Cutoff] {
-				a := samples[sample].A.Sample()
-				for i, v := range a.Data {
-					d.Rand[i].Mean += v
-				}
-				b := samples[sample].B.Sample()
-				for i, v := range b.Data {
-					d.Rand[i].Mean += v
-				}
-			}
-			for i := range d.Rand {
-				d.Rand[i].Mean /= 2 * Cutoff
-			}
-			for sample := range samples[:Cutoff] {
-				a := samples[sample].A.Sample()
-				for i, v := range a.Data {
-					diff := d.Rand[i].Mean - v
-					d.Rand[i].Stddev += diff * diff
-				}
-				b := samples[sample].B.Sample()
-				for i, v := range b.Data {
-					diff := d.Rand[i].Mean - v
-					d.Rand[i].Stddev += diff * diff
-				}
-			}
-			for i := range d.Rand {
-				d.Rand[i].Stddev /= 2 * Cutoff
-				d.Rand[i].Stddev = float32(math.Sqrt(float64(d.Rand[i].Stddev)))
-			}
-			r = d.Rand
-		}*/
 	}
 	fmt.Println(result)
 
