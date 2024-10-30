@@ -260,8 +260,6 @@ func PageRank(x, y Matrix) []float64 {
 type Sample struct {
 	A        RandomMatrix
 	B        RandomMatrix
-	Order    RandomMatrix
-	Symbol   RandomMatrix
 	Ranks    []float64
 	Variance float64
 }
@@ -278,24 +276,16 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		}
 		projections[i] = NewRandomMatrix(Input, Input, seed)
 	}
+	order := NewRandomMatrix(Size, length, 1)
+	symbol := NewRandomMatrix(Size, Symbols, 1)
+	orders := order.Sample()
+	symbols := symbol.Sample()
 	index := 0
 	samples := make([]Sample, Samples)
 	for i := 0; i < Scale; i++ {
 		for j := i + 1; j < Scale; j++ {
 			samples[index].A = projections[i]
 			samples[index].B = projections[j]
-			seed := rng.Int63()
-			if seed == 0 {
-				seed = 1
-			}
-			order := NewRandomMatrix(Size, length, seed)
-			seed = rng.Int63()
-			if seed == 0 {
-				seed = 1
-			}
-			symbol := NewRandomMatrix(Size, Symbols, seed)
-			samples[index].Order = order
-			samples[index].Symbol = symbol
 			index++
 		}
 	}
@@ -304,26 +294,24 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 	process := func(sample *Sample) {
 		q := puzzle.Q()
 		input := NewZeroMatrix(Input, length)
-		order := sample.Order.Sample()
 		a, b := 0, 1
 		jj := input.Rows - 1
 		for j := 0; j < jj; j++ {
 			x, y := (j+a)%input.Rows, (j+b)%input.Rows
 			copy(input.Data[j*Input+Size:j*Input+Size+Size],
-				order.Data[x*Size:(x+1)*Size])
+				orders.Data[x*Size:(x+1)*Size])
 			copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
-				order.Data[(y)*Size:(y+1)*Size])
+				orders.Data[(y)*Size:(y+1)*Size])
 			a, b = b, a
 		}
-		syms := sample.Symbol.Sample()
 		index := 0
 		for i := 0; i < len(q); i++ {
-			symbol := syms.Data[Size*q[i] : Size*(q[i]+1)]
+			symbol := symbols.Data[Size*q[i] : Size*(q[i]+1)]
 			copy(input.Data[index:index+Input], symbol)
 			index += Input
 		}
 		{
-			symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
+			symbol := symbols.Data[Size*To['$'] : Size*(To['$']+1)]
 			copy(input.Data[index:index+Input], symbol)
 		}
 		/*for j := 0; j < input.Rows; j++ {
