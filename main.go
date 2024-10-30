@@ -92,9 +92,9 @@ func (p Puzzle) A() int {
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
 	"^abcdabcdabcdabcdabcda",
-	"^abcdabcdabcdabcdabcdabcdab",
-	"^abcdabcdabcdabcdabcdabcdabc",
-	"^abcdabcdabcdabcdabcdabcdabcd",
+	"^abcdabcdabcdabcdabcdab",
+	"^abcdabcdabcdabcdabcdabc",
+	"^abcdabcdabcdabcdabcdabcd",
 	"^abcddcbaabcddcbaabcddcbaabcd",
 	"^aabbccddaabbccddaabbccd",
 	"^aabbccddaabbccddaabbccdd",
@@ -260,8 +260,8 @@ func PageRank(x, y Matrix) []float64 {
 type Sample struct {
 	A        RandomMatrix
 	B        RandomMatrix
-	Order    [2]RandomMatrix
-	Symbol   [2]RandomMatrix
+	Order    RandomMatrix
+	Symbol   RandomMatrix
 	Ranks    []float64
 	Variance float64
 }
@@ -294,66 +294,51 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 				seed = 1
 			}
 			symbol := NewRandomMatrix(Size, Symbols, seed)
-			samples[index].Order[0] = order
-			samples[index].Symbol[0] = symbol
-			seed = rng.Int63()
-			if seed == 0 {
-				seed = 1
-			}
-			order = NewRandomMatrix(Size, length, seed)
-			seed = rng.Int63()
-			if seed == 0 {
-				seed = 1
-			}
-			symbol = NewRandomMatrix(Size, Symbols, seed)
-			samples[index].Order[1] = order
-			samples[index].Symbol[1] = symbol
+			samples[index].Order = order
+			samples[index].Symbol = symbol
 			index++
 		}
 	}
 
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
-		var inputs [2]Matrix
 		q := puzzle.Q()
-		inputs[0] = NewZeroMatrix(Input, length)
-		inputs[1] = NewZeroMatrix(Input, length)
-		for i := range inputs {
-			input := &inputs[i]
-			order := sample.Order[i].Sample()
-			a, b := 0, 1
-			jj := input.Rows - 1
-			for j := 0; j < jj; j++ {
-				x, y := (j+a)%input.Rows, (j+b)%input.Rows
-				copy(input.Data[j*Input+Size:j*Input+Size+Size],
-					order.Data[x*Size:(x+1)*Size])
-				copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
-					order.Data[(y)*Size:(y+1)*Size])
-				a, b = b, a
-			}
-			syms := sample.Symbol[i].Sample()
-			index := 0
-			for i := 0; i < len(q); i++ {
-				symbol := syms.Data[Size*q[i] : Size*(q[i]+1)]
-				copy(input.Data[index:index+Input], symbol)
-				index += Input
-			}
-			{
-				symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
-				copy(input.Data[index:index+Input], symbol)
-			}
-			/*for j := 0; j < input.Rows; j++ {
-				for i := 0; i < input.Cols; i += 2 {
-					input.Data[j*input.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-					input.Data[j*input.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-				}
-			}*/
+		input := NewZeroMatrix(Input, length)
+		order := sample.Order.Sample()
+		a, b := 0, 1
+		jj := input.Rows - 1
+		for j := 0; j < jj; j++ {
+			x, y := (j+a)%input.Rows, (j+b)%input.Rows
+			copy(input.Data[j*Input+Size:j*Input+Size+Size],
+				order.Data[x*Size:(x+1)*Size])
+			copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
+				order.Data[(y)*Size:(y+1)*Size])
+			a, b = b, a
 		}
-		a := sample.A.Sample()
-		b := sample.B.Sample()
-		x := a.MulT(inputs[0])
-		y := b.MulT(inputs[1])
-		sample.Ranks = PageRank(x, y)
+		syms := sample.Symbol.Sample()
+		index := 0
+		for i := 0; i < len(q); i++ {
+			symbol := syms.Data[Size*q[i] : Size*(q[i]+1)]
+			copy(input.Data[index:index+Input], symbol)
+			index += Input
+		}
+		{
+			symbol := syms.Data[Size*To['$'] : Size*(To['$']+1)]
+			copy(input.Data[index:index+Input], symbol)
+		}
+		/*for j := 0; j < input.Rows; j++ {
+			for i := 0; i < input.Cols; i += 2 {
+				input.Data[j*input.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
+				input.Data[j*input.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
+			}
+		}*/
+		{
+			a := sample.A.Sample()
+			b := sample.B.Sample()
+			x := a.MulT(input)
+			y := b.MulT(input)
+			sample.Ranks = PageRank(x, y)
+		}
 		done <- true
 	}
 	flight, index, cpus := 0, 0, runtime.NumCPU()
