@@ -91,7 +91,7 @@ func (p Puzzle) A() int {
 
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
-	"^abcdabcdabcdabcdabcda",
+	"^abcdabcdabcdabcda",
 	"^abcdabcdabcdabcdabcdab",
 	"^abcdabcdabcdabcdabcdabc",
 	"^abcdabcdabcdabcdabcdabcd",
