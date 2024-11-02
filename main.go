@@ -382,7 +382,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			indexes := make([]int, 0, 8)
 			for key, value := range input {
 				if value == symbol {
-					indexes = append(indexes, 2*key)
+					indexes = append(indexes, 2*key, 2*key+1)
 				}
 			}
 			sum, count := 0.0, 0.0
