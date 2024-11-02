@@ -91,13 +91,13 @@ func (p Puzzle) A() int {
 
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
-	"^abcdabcdabcdabcda",
-	"^abcdabcdabcdabcdabcdab",
-	"^abcdabcdabcdabcdabcdabc",
-	"^abcdabcdabcdabcdabcdabcd",
-	"^abcddcbaabcddcbaabcddcbaabcd",
-	"^aabbccddaabbccddaabbccd",
-	"^aabbccddaabbccddaabbccdd",
+	"abcdabcdabcda",
+	"abcdabcdabcdabcdab",
+	"abcdabcdabcdabcdabc",
+	"abcdabcdabcdabcdabcd",
+	"abcddcbaabcddcbaabcd",
+	"aabbccddaabbccddaabbccd",
+	"aabbccddaabbccddaabbccdd",
 }
 
 // Matrix is a float32 matrix
@@ -266,7 +266,7 @@ type Sample struct {
 
 // Search searches for a symbol
 func (puzzle Puzzle) Search(seed int64) []Sample {
-	length := len(puzzle.Q()) + 1
+	length := len(puzzle.Q()) //+ 1
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
@@ -293,7 +293,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
 		q := puzzle.Q()
-		q = append(q, To['$'])
+		//q = append(q, To['$'])
 		input := NewZeroMatrix(Input, 2*length)
 		for i := 0; i < len(q); i++ {
 			index := 2 * i
@@ -383,6 +383,9 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			for key, value := range input {
 				if value == symbol {
 					indexes = append(indexes, 2*key, 2*key+1)
+					if 2*key > 0 {
+						indexes = append(indexes, 2*key-1)
+					}
 				}
 			}
 			sum, count := 0.0, 0.0
@@ -408,7 +411,6 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 	}
 	fmt.Println(result)
-
 	return result
 }
 
