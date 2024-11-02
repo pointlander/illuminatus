@@ -25,7 +25,7 @@ const (
 	// Size is the link size
 	Size = 16
 	// Input is the network input size
-	Input = Size + 2*Size
+	Input = 2 * Size
 	// S is the scaling factor for the softmax
 	S = 1.0 - 1e-300
 	// Scale is the scale of the search
@@ -91,13 +91,13 @@ func (p Puzzle) A() int {
 
 var Puzzles = []Puzzle{
 	//"^a$ ^ab$ ^abc$ ^abcd$ ^abcda$ ^abcdab",
-	"^abcdabcdabcdabcda",
-	"^abcdabcdabcdabcdabcdab",
-	"^abcdabcdabcdabcdabcdabc",
-	"^abcdabcdabcdabcdabcdabcd",
-	"^abcddcbaabcddcbaabcddcbaabcd",
-	"^aabbccddaabbccddaabbccd",
-	"^aabbccddaabbccddaabbccdd",
+	"abcdabcdabcda",
+	"abcdabcdabcdabcdab",
+	"abcdabcdabcdabcdabc",
+	"abcdabcdabcdabcdabcd",
+	"abcddcbaabcddcbaabcd",
+	"aabbccddaabbccddaabbccd",
+	"aabbccddaabbccddaabbccdd",
 }
 
 // Matrix is a float32 matrix
@@ -266,7 +266,7 @@ type Sample struct {
 
 // Search searches for a symbol
 func (puzzle Puzzle) Search(seed int64) []Sample {
-	length := len(puzzle.Q()) + 1
+	length := len(puzzle.Q()) //+ 1
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
@@ -276,9 +276,9 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		}
 		projections[i] = NewRandomMatrix(Input, Input, seed)
 	}
-	order := NewRandomMatrix(Size, length, 1)
+	//order := NewRandomMatrix(Size, length, 1)
 	symbol := NewRandomMatrix(Size, Symbols, 1)
-	orders := order.Sample()
+	//orders := order.Sample()
 	symbols := symbol.Sample()
 	index := 0
 	samples := make([]Sample, Samples)
@@ -293,8 +293,21 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
 		q := puzzle.Q()
-		input := NewZeroMatrix(Input, length)
-		a, b := 0, 1
+		//q = append(q, To['$'])
+		input := NewZeroMatrix(Input, 2*length)
+		for i := 0; i < len(q); i++ {
+			index := 2 * i
+			symbol := symbols.Data[Size*q[i] : Size*(q[i]+1)]
+			if index > 0 {
+				copy(input.Data[(index-1)*Input:(index-1)*Input+Size], symbol)
+			}
+			copy(input.Data[index*Input:index*Input+Size], symbol)
+			copy(input.Data[index*Input+Size:(index+1)*Input], symbol)
+			if index+1 < 2*len(q) {
+				copy(input.Data[(index+1)*Input+Size:(index+2)*Input], symbol)
+			}
+		}
+		/*a, b := 0, 1
 		jj := input.Rows - 1
 		for j := 0; j < jj; j++ {
 			x, y := (j+a)%input.Rows, (j+b)%input.Rows
@@ -313,7 +326,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		{
 			symbol := symbols.Data[Size*To['$'] : Size*(To['$']+1)]
 			copy(input.Data[index:index+Input], symbol)
-		}
+		}*/
 		/*for j := 0; j < input.Rows; j++ {
 			for i := 0; i < input.Cols; i += 2 {
 				input.Data[j*input.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
@@ -369,7 +382,10 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 			indexes := make([]int, 0, 8)
 			for key, value := range input {
 				if value == symbol {
-					indexes = append(indexes, key)
+					indexes = append(indexes, 2*key, 2*key+1)
+					if 2*key > 0 {
+						indexes = append(indexes, 2*key-1)
+					}
 				}
 			}
 			sum, count := 0.0, 0.0
@@ -395,7 +411,6 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 		}
 	}
 	fmt.Println(result)
-
 	return result
 }
 
