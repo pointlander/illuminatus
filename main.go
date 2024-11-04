@@ -229,8 +229,7 @@ func (m Matrix) TanH() Matrix {
 }
 
 // PageRank computes the page rank of Q, K
-func PageRank(x, y Matrix) []float64 {
-	graph := pagerank.NewGraph()
+func PageRank(x, y Matrix, offset int, graph *pagerank.Graph) {
 	for i := 0; i < y.Rows; i++ {
 		yy := y.Data[i*y.Cols : (i+1)*y.Cols]
 		aa := float32(0.0)
@@ -246,14 +245,9 @@ func PageRank(x, y Matrix) []float64 {
 			}
 			bb = float32(math.Sqrt(float64(bb)))
 			d := math.Abs(float64(vector.Dot(yy, xx) / (aa * bb)))
-			graph.Link(uint32(i), uint32(j), d)
+			graph.Link(uint32(offset+i), uint32(offset+j), d)
 		}
 	}
-	ranks := make([]float64, y.Rows)
-	graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
-		ranks[node] = rank
-	})
-	return ranks
 }
 
 // Sample is a sample
@@ -338,7 +332,13 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 			b := sample.B.Sample()
 			x := a.MulT(input)
 			y := b.MulT(input)
-			sample.Ranks = PageRank(x, y)
+			graph := pagerank.NewGraph()
+			PageRank(x, y, 0, graph)
+			ranks := make([]float64, y.Rows)
+			graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
+				ranks[node] = rank
+			})
+			sample.Ranks = ranks
 		}
 		done <- true
 	}
