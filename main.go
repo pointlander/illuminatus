@@ -376,8 +376,8 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 				}
 			}
 			for k := 0; k < stride; k++ {
-				graph.Link(uint32(offsetA+k), uint32(offsetB+k), 1)
-				graph.Link(uint32(offsetB+k), uint32(offsetA+k), 1)
+				graph.Link(uint32(offsetA+k), uint32(offsetB+k), Samples)
+				graph.Link(uint32(offsetB+k), uint32(offsetA+k), Samples)
 			}
 			offsetB += stride
 		}
