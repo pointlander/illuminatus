@@ -363,7 +363,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 	}
 
 	graph := pagerank.NewGraph()
-	ranks := make([]float64, 3*stride*Samples)
+	ranks := make([]float64, stride*Samples)
 	offsetA := 0
 	for i := 0; i < Scale-1; i++ {
 		offsetB := 0
@@ -375,13 +375,13 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 					d++
 				}
 			}
-			for k := 0; k < stride*stride; k++ {
-				graph.Link(uint32(offsetA+k), uint32(offsetB+k), .01)
-				graph.Link(uint32(offsetB+k), uint32(offsetA+k), .01)
+			for k := 0; k < stride; k++ {
+				graph.Link(uint32(offsetA+k), uint32(offsetB+k), 1)
+				graph.Link(uint32(offsetB+k), uint32(offsetA+k), 1)
 			}
-			offsetB += stride * stride
+			offsetB += stride
 		}
-		offsetA += stride * stride
+		offsetA += stride
 	}
 	graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
 		ranks[node] = rank
@@ -404,7 +404,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
 	min, result := math.MaxFloat64, 0
-	for e := 0; e < 8; e++ {
+	for e := 0; e < 1; e++ {
 		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
