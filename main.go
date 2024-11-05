@@ -32,7 +32,7 @@ const (
 	Scale = 33 //48 96
 	// SymbolsCount is the number of unique symbols in a puzzle
 	SymbolsCount = 4
-	// Samples is the number of samplee
+	// Samples is the number of samples
 	Samples = Scale * (Scale - 1) / 2
 )
 
@@ -229,7 +229,8 @@ func (m Matrix) TanH() Matrix {
 }
 
 // PageRank computes the page rank of Q, K
-func PageRank(x, y Matrix, offset int, graph *pagerank.Graph) {
+func PageRank(x, y Matrix, graph []float64) {
+	offset := 0
 	for i := 0; i < y.Rows; i++ {
 		yy := y.Data[i*y.Cols : (i+1)*y.Cols]
 		aa := float32(0.0)
@@ -245,7 +246,8 @@ func PageRank(x, y Matrix, offset int, graph *pagerank.Graph) {
 			}
 			bb = float32(math.Sqrt(float64(bb)))
 			d := math.Abs(float64(vector.Dot(yy, xx) / (aa * bb)))
-			graph.Link(uint32(offset+i), uint32(offset+j), d)
+			graph[offset] = d
+			offset++
 		}
 	}
 }
@@ -254,6 +256,7 @@ func PageRank(x, y Matrix, offset int, graph *pagerank.Graph) {
 type Sample struct {
 	A        RandomMatrix
 	B        RandomMatrix
+	Graph    []float64
 	Ranks    []float64
 	Variance float64
 }
@@ -261,6 +264,7 @@ type Sample struct {
 // Search searches for a symbol
 func (puzzle Puzzle) Search(seed int64) []Sample {
 	length := len(puzzle.Q()) //+ 1
+	stride := 2 * length
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
 	for i := range projections {
@@ -332,13 +336,9 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 			b := sample.B.Sample()
 			x := a.MulT(input)
 			y := b.MulT(input)
-			graph := pagerank.NewGraph()
-			PageRank(x, y, 0, graph)
-			ranks := make([]float64, y.Rows)
-			graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
-				ranks[node] = rank
-			})
-			sample.Ranks = ranks
+			graph := make([]float64, y.Rows*x.Rows)
+			PageRank(x, y, graph)
+			sample.Graph = graph
 		}
 		done <- true
 	}
@@ -362,6 +362,40 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		<-done
 	}
 
+	graph := pagerank.NewGraph()
+	ranks := make([]float64, stride*Samples)
+	offsetA := 0
+	for i := 0; i < Scale-1; i++ {
+		offsetB := 0
+		for j := i + 1; j < Scale; j++ {
+			d, b := 0, samples[j]
+			for k := 0; k < stride; k++ {
+				for l := 0; l < stride; l++ {
+					graph.Link(uint32(offsetA+k), uint32(offsetA+l), b.Graph[d])
+					d++
+				}
+			}
+			for k := 0; k < stride; k++ {
+				graph.Link(uint32(offsetA+k), uint32(offsetB+k), Samples)
+				graph.Link(uint32(offsetB+k), uint32(offsetA+k), Samples)
+			}
+			offsetB += stride
+		}
+		offsetA += stride
+	}
+	graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
+		ranks[node] = rank
+	})
+	index = 0
+	for i := 0; i < Scale; i++ {
+		for j := i + 1; j < Scale; j++ {
+			begin := index * stride
+			end := (index + 1) * stride
+			samples[index].Ranks =
+				ranks[begin:end]
+			index++
+		}
+	}
 	return samples
 }
 
@@ -370,7 +404,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
 	min, result := math.MaxFloat64, 0
-	for e := 0; e < 8; e++ {
+	for e := 0; e < 1; e++ {
 		seed = rng.Int63()
 		if seed == 0 {
 			seed = 1
