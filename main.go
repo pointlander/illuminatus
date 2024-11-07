@@ -263,7 +263,7 @@ type Sample struct {
 
 // Search searches for a symbol
 func (puzzle Puzzle) Search(seed int64) []Sample {
-	length := len(puzzle.Q()) //+ 1
+	length := len(puzzle.Q())
 	stride := 2 * length
 	rng := rand.New(rand.NewSource(seed))
 	projections := make([]RandomMatrix, Scale)
@@ -274,9 +274,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		}
 		projections[i] = NewRandomMatrix(Input, Input, seed)
 	}
-	//order := NewRandomMatrix(Size, length, 1)
 	symbol := NewRandomMatrix(Size, Symbols, 1)
-	//orders := order.Sample()
 	symbols := symbol.Sample()
 	index := 0
 	samples := make([]Sample, Samples)
@@ -291,7 +289,6 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 	done := make(chan bool, 8)
 	process := func(sample *Sample) {
 		q := puzzle.Q()
-		//q = append(q, To['$'])
 		input := NewZeroMatrix(Input, 2*length)
 		for i := 0; i < len(q); i++ {
 			index := 2 * i
@@ -305,41 +302,13 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 				copy(input.Data[(index+1)*Input+Size:(index+2)*Input], symbol)
 			}
 		}
-		/*a, b := 0, 1
-		jj := input.Rows - 1
-		for j := 0; j < jj; j++ {
-			x, y := (j+a)%input.Rows, (j+b)%input.Rows
-			copy(input.Data[j*Input+Size:j*Input+Size+Size],
-				orders.Data[x*Size:(x+1)*Size])
-			copy(input.Data[j*Input+Size+Size:j*Input+Size+2*Size],
-				orders.Data[(y)*Size:(y+1)*Size])
-			a, b = b, a
-		}
-		index := 0
-		for i := 0; i < len(q); i++ {
-			symbol := symbols.Data[Size*q[i] : Size*(q[i]+1)]
-			copy(input.Data[index:index+Input], symbol)
-			index += Input
-		}
-		{
-			symbol := symbols.Data[Size*To['$'] : Size*(To['$']+1)]
-			copy(input.Data[index:index+Input], symbol)
-		}*/
-		/*for j := 0; j < input.Rows; j++ {
-			for i := 0; i < input.Cols; i += 2 {
-				input.Data[j*input.Cols+i] += complex(math.Sin(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-				input.Data[j*input.Cols+i+1] += complex(math.Cos(float64(j)/math.Pow(10000, 2*float64(i)/Size)), 0)
-			}
-		}*/
-		{
-			a := sample.A.Sample()
-			b := sample.B.Sample()
-			x := a.MulT(input)
-			y := b.MulT(input)
-			graph := make([]float64, y.Rows*x.Rows)
-			PageRank(x, y, graph)
-			sample.Graph = graph
-		}
+		a := sample.A.Sample()
+		b := sample.B.Sample()
+		x := a.MulT(input)
+		y := b.MulT(input)
+		graph := make([]float64, y.Rows*x.Rows)
+		PageRank(x, y, graph)
+		sample.Graph = graph
 		done <- true
 	}
 	flight, index, cpus := 0, 0, runtime.NumCPU()
@@ -368,11 +337,10 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 	for i := 0; i < Scale-1; i++ {
 		offsetB := 0
 		for j := i + 1; j < Scale; j++ {
-			d, b := 0, samples[j]
+			b := samples[j]
 			for k := 0; k < stride; k++ {
 				for l := 0; l < stride; l++ {
-					graph.Link(uint32(offsetA+k), uint32(offsetA+l), b.Graph[d])
-					d++
+					graph.Link(uint32(offsetA+k), uint32(offsetA+l), b.Graph[k*stride+l])
 				}
 			}
 			for k := 0; k < stride; k++ {
@@ -404,44 +372,42 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
 	fmt.Println(string(puzzle))
 	min, result := math.MaxFloat64, 0
-	for e := 0; e < 1; e++ {
-		seed = rng.Int63()
-		if seed == 0 {
-			seed = 1
-		}
-		samples := puzzle.Search(seed)
-		input := puzzle.Q()
+	seed = rng.Int63()
+	if seed == 0 {
+		seed = 1
+	}
+	samples := puzzle.Search(seed)
+	input := puzzle.Q()
 
-		for symbol := 0; symbol < SymbolsCount; symbol++ {
-			indexes := make([]int, 0, 8)
-			for key, value := range input {
-				if value == symbol {
-					indexes = append(indexes, 2*key, 2*key+1)
-					if 2*key > 0 {
-						indexes = append(indexes, 2*key-1)
-					}
+	for symbol := 0; symbol < SymbolsCount; symbol++ {
+		indexes := make([]int, 0, 8)
+		for key, value := range input {
+			if value == symbol {
+				indexes = append(indexes, 2*key, 2*key+1)
+				if 2*key > 0 {
+					indexes = append(indexes, 2*key-1)
 				}
 			}
-			sum, count := 0.0, 0.0
-			for sample := range samples {
-				ranks := samples[sample].Ranks
-				for _, index := range indexes {
-					sum += ranks[index]
-					count++
-				}
+		}
+		sum, count := 0.0, 0.0
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				sum += ranks[index]
+				count++
 			}
-			average := sum / count
-			variance := 0.0
-			for sample := range samples {
-				ranks := samples[sample].Ranks
-				for _, index := range indexes {
-					diff := average - ranks[index]
-					variance += diff * diff
-				}
+		}
+		average := sum / count
+		variance := 0.0
+		for sample := range samples {
+			ranks := samples[sample].Ranks
+			for _, index := range indexes {
+				diff := average - ranks[index]
+				variance += diff * diff
 			}
-			if variance < min {
-				min, result = variance, symbol
-			}
+		}
+		if variance < min {
+			min, result = variance, symbol
 		}
 	}
 	fmt.Println(result)
