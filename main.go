@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"runtime"
 
+	"github.com/pointlander/illuminatus/arc"
 	"github.com/pointlander/illuminatus/matrix"
 	"github.com/pointlander/illuminatus/swarm"
 	"github.com/pointlander/illuminatus/turing"
@@ -415,6 +416,8 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 }
 
 var (
+	// FlagArc is the arc mode
+	FlagArc = flag.Bool("arc", false, "arc mode")
 	// FlagTuring in turing mode
 	FlagTuring = flag.Bool("turing", false, "turing mode")
 	// FlagTarget is the factoring target
@@ -436,6 +439,9 @@ func main() {
 		return
 	} else if *FlagMatrix {
 		matrix.Matr1x()
+		return
+	} else if *FlagArc {
+		arc.Arc()
 		return
 	}
 
