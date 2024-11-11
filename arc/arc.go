@@ -75,23 +75,11 @@ const (
 )
 
 // Puzzle is a puzzle
-type Puzzle string
+type Puzzle []byte
 
 // Q is the query portion of a puzzle
-func (p Puzzle) Q() []int {
-	q := []rune(p)
-	last := len(q) - 1
-	query := make([]int, last)
-	for key, value := range q[:last] {
-		query[key] = int(value)
-	}
-	return query
-}
-
-// A is the answer portion of a puzzle
-func (p Puzzle) A() int {
-	q := []rune(p)
-	return int(q[len(q)-1])
+func (p Puzzle) Q() []byte {
+	return []byte(p)
 }
 
 // Matrix is a float32 matrix
@@ -364,7 +352,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 // Illuminatus
 func (puzzle Puzzle) Illuminatus(seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
-	fmt.Println(string(puzzle))
+	fmt.Println(puzzle)
 	min, result := math.MaxFloat64, 0
 	seed = rng.Int63()
 	if seed == 0 {
@@ -376,7 +364,7 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 	for symbol := 0; symbol < SymbolsCount; symbol++ {
 		indexes := make([]int, 0, 8)
 		for key, value := range input {
-			if value == symbol {
+			if value == byte(symbol) {
 				indexes = append(indexes, 2*key, 2*key+1)
 				if 2*key > 0 {
 					indexes = append(indexes, 2*key-1)
@@ -410,5 +398,40 @@ func (puzzle Puzzle) Illuminatus(seed int64) int {
 
 // Arc is the arc model
 func Arc() {
-	Load()
+	puzzles := Load()
+	encoding := make([]Puzzle, 2*len(puzzles[0].Train)+1)
+	index := 0
+	for _, t := range puzzles[0].Train {
+		for y, tt := range t.Input {
+			for x, ttt := range tt {
+				encoding[index] = append(encoding[index], ttt, byte(x), byte(y))
+			}
+			encoding[index] = append(encoding[index], 30)
+		}
+		encoding[index] = append(encoding[index], 31)
+		index++
+		for y, tt := range t.Output {
+			for x, ttt := range tt {
+				encoding[index] = append(encoding[index], ttt, byte(x), byte(y))
+			}
+			encoding[index] = append(encoding[index], 30)
+		}
+		encoding[index] = append(encoding[index], 31)
+		index++
+	}
+	for _, t := range puzzles[0].Test[:1] {
+		for y, tt := range t.Input {
+			for x, ttt := range tt {
+				encoding[index] = append(encoding[index], ttt, byte(x), byte(y))
+			}
+			encoding[index] = append(encoding[index], 30)
+		}
+		encoding[index] = append(encoding[index], 31)
+	}
+	solution := [30 * 30][30]int{}
+	for i := range solution {
+		for j := range solution[i] {
+			solution[i][j] = 1
+		}
+	}
 }
