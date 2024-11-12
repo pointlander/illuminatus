@@ -59,7 +59,7 @@ func Load() []Set {
 
 const (
 	// Symbols
-	Symbols = 30
+	Symbols = 32
 	// Size is the link size
 	Size = 16
 	// Input is the network input size
@@ -69,7 +69,7 @@ const (
 	// Scale is the scale of the search
 	Scale = 33 //48 96
 	// SymbolsCount is the number of unique symbols in a puzzle
-	SymbolsCount = 30
+	SymbolsCount = 32
 	// Samples is the number of samples
 	Samples = Scale * (Scale - 1) / 2
 )
@@ -274,7 +274,7 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 		input := NewZeroMatrix(Input, 2*length)
 		for i := 0; i < len(q); i++ {
 			index := 2 * i
-			symbol := symbols.Data[Size*q[i] : Size*(q[i]+1)]
+			symbol := symbols.Data[Size*int(q[i]) : Size*(int(q[i])+1)]
 			if index > 0 {
 				copy(input.Data[(index-1)*Input:(index-1)*Input+Size], symbol)
 			}
@@ -352,7 +352,6 @@ func (puzzle Puzzle) Search(seed int64) []Sample {
 // Illuminatus
 func (puzzle Puzzle) Illuminatus(seed int64) int {
 	rng := rand.New(rand.NewSource(seed))
-	fmt.Println(puzzle)
 	min, result := math.MaxFloat64, 0
 	seed = rng.Int63()
 	if seed == 0 {
@@ -428,10 +427,38 @@ func Arc() {
 		}
 		encoding[index] = append(encoding[index], 31)
 	}
-	solution := [30 * 30][30]int{}
+	solution := [Symbols * Symbols][Symbols]int{}
 	for i := range solution {
 		for j := range solution[i] {
 			solution[i][j] = 1
 		}
+	}
+	rng := rand.New(rand.NewSource(1))
+	for i := 0; i < 128; i++ {
+		input := make(Puzzle, 0, 1)
+		for j := range encoding {
+			for k := 0; k < 2; k++ {
+				index := rng.Intn(len(encoding[j]))
+				input = append(input, encoding[j][index])
+			}
+		}
+		index, sum := rng.Intn(len(solution)-1), 0
+		for _, v := range solution[index] {
+			sum += v
+		}
+		sample := rng.Intn(sum)
+		sum = 0
+		for j, v := range solution[index] {
+			sum += v
+			if sample < sum {
+				input = append(input, byte(j))
+			}
+		}
+		seed := rng.Int63()
+		if seed == 0 {
+			seed = 1
+		}
+		result := input.Illuminatus(seed)
+		solution[index+1][result]++
 	}
 }
